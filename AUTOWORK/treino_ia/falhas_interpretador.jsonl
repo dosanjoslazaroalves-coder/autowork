@@ -1,0 +1,5 @@
+
+{"data_hora": "2026-07-07T13:40:15-03:00", "comando_usuario": "feche o aplicativo da google", "resposta_bruta": "", "erro": "HTTPConnectionPool(host='localhost', port=11434): Read timed out. (read timeout=60.0)", "modelo": "qwen2.5:3b"}
+{"data_hora": "2026-07-07T13:53:32-03:00", "comando_usuario": "qual o aplicativo do google", "resposta_bruta": "", "erro": "HTTPConnectionPool(host='localhost', port=11434): Read timed out. (read timeout=60.0)", "modelo": "qwen2.5:3b"}
+{"data_hora": "2026-07-07T13:53:52-03:00", "comando_usuario": "fecha o aplicativo", "resposta_bruta": "{\"acao\":\"fechar_app\",\"parametros\":{},\"confirmacao\":true,\"confianca\":0.97}", "erro": "Parametros obrigatorios ausentes para fechar_app: nome", "modelo": "qwen2.5:3b"}
+{"data_hora": "2026-07-11T07:48:59-03:00", "comando_usuario": "abóbora o códex", "resposta_bruta": "", "erro": "HTTPConnectionPool(host='localhost', port=11434): Read timed out. (read timeout=60.0)", "modelo": "qwen2.5:3b"}

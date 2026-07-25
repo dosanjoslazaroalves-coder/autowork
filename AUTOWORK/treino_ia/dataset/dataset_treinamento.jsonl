@@ -1,0 +1,12 @@
+{"entrada": "abrir o bloco de notas", "saida": {"acao": "abrir_app", "parametros": {"nome": "o comando \"abrir o bloco de notas\" usando a sua automação de computador."}, "confirmacao": false, "confianca": 1.0}}
+{"entrada": "abrir o aplicativo bloco de notas", "saida": {"acao": "abrir_app", "parametros": {"nome": "o comando de abrir o aplicativo bloco de notas."}, "confirmacao": false, "confianca": 1.0}}
+{"entrada": "abrir bloco de notas", "saida": {"acao": "abrir_app", "parametros": {"nome": "notepad"}, "confirmacao": false, "confianca": 0.97}}
+{"entrada": "escreva um texto", "saida": {"acao": "escrever", "parametros": {"texto": "um texto"}, "confirmacao": false, "confianca": 0.97}}
+{"entrada": "inicia word", "saida": {"acao": "abrir_app", "parametros": {"nome": "word"}, "confirmacao": false, "confianca": 0.97}}
+{"entrada": "escreva estou tentando desenvolver esse projeto para melhorar o meu posto por", "saida": {"acao": "escrever", "parametros": {"texto": "estou tentando desenvolver esse projeto para melhorar o meu posto por"}, "confirmacao": false, "confianca": 0.99}}
+{"entrada": "inicia o alô google", "saida": {"acao": "abrir_app", "parametros": {"nome": "google assistant"}, "confirmacao": false, "confianca": 0.97}}
+{"entrada": "inicie o navegador", "saida": {"acao": "abrir_app", "parametros": {"nome": "navegador"}, "confirmacao": false, "confianca": 0.97}}
+{"entrada": "inicie o chrome", "saida": {"acao": "abrir_app", "parametros": {"nome": "chrome"}, "confirmacao": false, "confianca": 0.99}}
+{"entrada": "o google por favor", "saida": {"acao": "abrir_site", "parametros": {"url": "https://google.com"}, "confirmacao": false, "confianca": 0.97}}
+{"entrada": "abro o navegador no youtube", "saida": {"acao": "abrir_site", "parametros": {"url": "https://youtube.com"}, "confirmacao": false, "confianca": 0.95}}
+{"entrada": "abra a calculadora iniciar calculadora", "saida": {"acao": "escrever", "parametros": {"texto": "abrir calculadora"}, "confirmacao": false, "confianca": 0.97}}

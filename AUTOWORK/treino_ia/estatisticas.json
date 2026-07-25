@@ -1,0 +1,138 @@
+{
+  "gerado_em": "2026-07-11T07:51:16-03:00",
+  "quantidade_comandos_executados": 64,
+  "quantidade_sucessos": 12,
+  "quantidade_falhas": 2,
+  "quantidade_comandos_nao_reconhecidos": 50,
+  "taxa_sucesso_percentual": 18.75,
+  "comandos_mais_utilizados": [
+    {
+      "valor": "fecha o app",
+      "quantidade": 2
+    },
+    {
+      "valor": "abrir o bloco de notas",
+      "quantidade": 1
+    },
+    {
+      "valor": "abrir o aplicativo bloco de notas",
+      "quantidade": 1
+    },
+    {
+      "valor": "abrir bloco de notas",
+      "quantidade": 1
+    },
+    {
+      "valor": "escreva um texto",
+      "quantidade": 1
+    },
+    {
+      "valor": "inicia word",
+      "quantidade": 1
+    },
+    {
+      "valor": "escreva estou tentando desenvolver esse projeto para melhorar o meu posto por",
+      "quantidade": 1
+    },
+    {
+      "valor": "inicia o alô google",
+      "quantidade": 1
+    },
+    {
+      "valor": "inicie o navegador",
+      "quantidade": 1
+    },
+    {
+      "valor": "inicie o chrome",
+      "quantidade": 1
+    }
+  ],
+  "comandos_nao_reconhecidos": [
+    {
+      "valor": "fecha o app",
+      "quantidade": 2
+    },
+    {
+      "valor": "abra o bloco de",
+      "quantidade": 1
+    },
+    {
+      "valor": "abrir o bloco de no",
+      "quantidade": 1
+    },
+    {
+      "valor": "o bloco de notas",
+      "quantidade": 1
+    },
+    {
+      "valor": "preciso que você abra o bloco de",
+      "quantidade": 1
+    },
+    {
+      "valor": "eu preciso que você abra o bloco de notas",
+      "quantidade": 1
+    },
+    {
+      "valor": "quando os mais velhos morrer como eles não tiveram filhos vai ser mais difícil para eles a união vai acabar",
+      "quantidade": 1
+    },
+    {
+      "valor": "blocos de motos",
+      "quantidade": 1
+    },
+    {
+      "valor": "inicia o navegador e abra wor",
+      "quantidade": 1
+    },
+    {
+      "valor": "se o urso",
+      "quantidade": 1
+    }
+  ],
+  "acoes_mais_executadas": [
+    {
+      "valor": "abrir_app",
+      "quantidade": 7
+    },
+    {
+      "valor": "escrever",
+      "quantidade": 3
+    },
+    {
+      "valor": "abrir_site",
+      "quantidade": 2
+    }
+  ],
+  "aplicativos_mais_abertos": [
+    {
+      "valor": "o comando \"abrir o bloco de notas\" usando a sua automação de computador.",
+      "quantidade": 1
+    },
+    {
+      "valor": "o comando de abrir o aplicativo bloco de notas.",
+      "quantidade": 1
+    },
+    {
+      "valor": "notepad",
+      "quantidade": 1
+    },
+    {
+      "valor": "word",
+      "quantidade": 1
+    },
+    {
+      "valor": "google assistant",
+      "quantidade": 1
+    },
+    {
+      "valor": "navegador",
+      "quantidade": 1
+    },
+    {
+      "valor": "chrome",
+      "quantidade": 1
+    }
+  ],
+  "tempo_medio_resposta_ia_ms": 14898.643,
+  "tempo_medio_execucao_rpa_ms": 169.619
+}
