@@ -1,14 +1,3 @@
-"""
-parser.py — Parser rápido de comandos para AUTOWORK.
-
-Responsabilidade única:
-    Receber texto normalizado e descobrir qual ação o usuário deseja,
-    consultando o catálogo de ações.
-
-Sem IA. Sem Ollama. Sem LLM.
-Sem if/elif para cada ação.
-APENAS lookup no CATALOGO_ACOES e MAPA_TOKEN_PARA_ACOES.
-"""
 
 from __future__ import annotations
 
