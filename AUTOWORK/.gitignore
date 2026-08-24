@@ -1,0 +1,13 @@
+.venv/
+.vscode/
+
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+
+*.wav
+modules/voz_teste/output/
+
+.env
+.env.*

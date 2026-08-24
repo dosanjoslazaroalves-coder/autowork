@@ -1,0 +1,24 @@
+# Ambientes virtuais locais
+.venv/
+**/.venv/
+
+# Cache e bytecode Python
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Segredos locais
+.env
+.env.*
+
+# Editor local
+.vscode/
+
+# Áudio gerado
+*.wav
+
+# Artefatos de instalador no workspace
+*.msi
+teste/espeak-ng-install.log
