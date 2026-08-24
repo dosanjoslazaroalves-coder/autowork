@@ -34,17 +34,20 @@ class SiteInfo:
     sinonimos: List[str] = field(default_factory=list)
     categoria: str = ""
 
-
-# ══════════════════════════════════════════════
-# Verbos / gatilhos por categoria
-# ══════════════════════════════════════════════
-
 VERBOS_ABRIR: Set[str] = frozenset({
     "abrir", "abra", "abre", "abrindo",
     "executar", "execute", "executa",
     "iniciar", "inicie", "inicia",
     "rodar", "rode",
 })
+VERBOS_ABRIR_SITE: Set[str] = frozenset({
+    "abrir site", "abra site", "abre site", "abrindo site",
+    "executar site", "execute site", "executa site",
+    "iniciar site", "inicie site", "inicia site",
+    "rodar site", "rode site",
+})
+
+VERBO_ABRIR_SITE_CANONICO = "abrir site"
 
 VERBOS_FECHAR: Set[str] = frozenset({
     "fechar", "fecha", "feche",
@@ -269,10 +272,13 @@ MAPA_VERBOS: Dict[str, str] = {
     "depure": "depurar",
 }
 
+for _variante_abrir_site in VERBOS_ABRIR_SITE:
+    MAPA_VERBOS[_variante_abrir_site] = VERBO_ABRIR_SITE_CANONICO
+
 
 VERBOS_POR_ACAO: Dict[str, Set[str]] = {
     "abrir_app": VERBOS_ABRIR,
-    "abrir_site": VERBOS_ABRIR,
+    "abrir_site": VERBOS_ABRIR_SITE,
     "fechar_janela": VERBOS_FECHAR,
     "alternar_janelas": VERBOS_ALTERNAR,
     "mostrar_area_de_trabalho": VERBOS_MOSTRAR,
@@ -410,7 +416,7 @@ CATALOGO_ACOES: Dict[str, AcaoInfo] = {
     # ── Ações de site ──
     "abrir_site": AcaoInfo(
         nome="abrir_site",
-        sinonimos=["abrir", "executar", "iniciar", "rodar"],
+        sinonimos=["abrir site"],
         funcao="abrir_site",
         modulo="abrir_site",
         parametros=["url"],
@@ -601,7 +607,7 @@ CATALOGO_ACOES: Dict[str, AcaoInfo] = {
     ),
     "inspecionar_elemento": AcaoInfo(
         nome="inspecionar_elemento",
-        sinonimos=["inspecionar", "elemento"],
+        sinonimos=["inspecionar", "inspecione", "elemento"],
         funcao="inspecionar_elemento",
         modulo="AtalhoNav",
         parametros=[],

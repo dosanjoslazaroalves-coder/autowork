@@ -1,14 +1,3 @@
-"""
-abrir_site.py — Abertura de sites no navegador padrão.
-
-Responsabilidade única:
-    Receber uma URL e abrir o navegador padrão utilizando exclusivamente
-    a biblioteca padrão ``webbrowser``.
-
-Uso:
-    from abrir_site import abrir_site
-    abrir_site("https://www.youtube.com")
-"""
 
 from __future__ import annotations
 
@@ -28,7 +17,6 @@ def abrir_site(url: str) -> None:
 
     url = url.strip()
 
-    # Validação básica de URL (deve conter scheme e netloc)
     parsed = urlparse(url)
     if not parsed.scheme or not parsed.netloc:
         logger.error("URL inválida: %r", url)

@@ -22,3 +22,8 @@ __pycache__/
 # Artefatos de instalador no workspace
 *.msi
 teste/espeak-ng-install.log
+
+# Diretórios fora do AUTOWORK
+/TODO.md
+/beta_projeto/
+/teste/

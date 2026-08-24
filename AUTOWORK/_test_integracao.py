@@ -12,9 +12,9 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from normalizador import normalizar
-from parser import parse
-from executor import REGISTRO_ACOES, executar, registrar
+from sistema_toke.normalizador import normalizar
+from sistema_toke.parser import parse
+from sistema_toke.executor import REGISTRO_ACOES, executar, registrar
 
 
 def _mock_fechar_janela() -> None:

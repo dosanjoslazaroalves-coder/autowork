@@ -1,14 +1,3 @@
-"""
-atalhos.py — Módulo de ações do computador via PyAutoGUI.
-
-Responsabilidade única:
-    Executar ações físicas no sistema operacional (teclas de atalho,
-    digitação, etc.).
-
-SEM lógica de interpretação.
-SEM if/elif para decidir o que fazer.
-APENAS métodos que fazem uma coisa cada.
-"""
 
 from __future__ import annotations
 

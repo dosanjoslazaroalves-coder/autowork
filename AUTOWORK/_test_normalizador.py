@@ -7,8 +7,8 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from normalizador import normalizar
-from parser import parse
+from sistema_toke.normalizador import normalizar
+from sistema_toke.parser import parse
 
 print("=" * 50)
 print("TESTE DO NORMALIZADOR - LINGUAGEM NATURAL")
