@@ -18,6 +18,8 @@ import speech_recognition as sr
 from executor import REGISTRO_ACOES, executar, registrar
 from normalizador import normalizar
 from parser import parse
+from dispatcher import dispatch
+from interpretador import interpretar
 
 logger = logging.getLogger(__name__)
 
@@ -188,6 +190,16 @@ def _exibir_resultado(
 def processar_comando(texto: str) -> dict:
 
     _exibir_banner()
+
+    # Intenções informativas seguem diretamente para o dispatcher, sem
+    # alterar o pipeline legado de normalização e parsing.
+    intencao = interpretar(texto)
+    if intencao is not None:
+        resultado = dispatch(intencao)
+        _exibir_resultado(texto, None, intencao, resultado)
+        if resultado.get("mensagem"):
+            print(f"  ▶ Resposta:             {resultado['mensagem']}")
+        return resultado
 
     # 1. Normaliza o texto
     normalizado = normalizar(texto)
