@@ -20,6 +20,23 @@ def registrar(nome_acao: str, funcao: Callable[..., Any]) -> None:
     logger.debug("Registro: ação '%s' registrada com sucesso.", nome_acao)
 
 
+def registrar_comandos_padrao() -> None:
+    from comd_rapidos.abrir_app import abrir_app
+    from comd_rapidos.abrir_site import abrir_site
+    from comd_rapidos.atalho_nav import AtalhoNav
+    from comd_rapidos.atalhos import Janela
+
+    registrar("abrir_app", abrir_app)
+    registrar("abrir_site", abrir_site)
+    Janela().registrar_no_executor(registrar)
+    AtalhoNav().registrar_no_executor(registrar)
+
+    logger.info(
+        "Executor: registro padrão inicializado com %d ação(ns).",
+        len(REGISTRO_ACOES),
+    )
+
+
 def executar(
     acao: str,
     **parametros: Any,

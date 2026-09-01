@@ -1,39 +1,19 @@
-
-
 from __future__ import annotations
 
 import logging
-from datetime import datetime
 
 import speech_recognition as sr
 
-from sistema_toke.executor import REGISTRO_ACOES, executar, registrar
+from sistema_toke.executor import executar, registrar_comandos_padrao
 from sistema_toke.normalizador import normalizar
-from sistema_toke.parser import parse
-from modules.voz_teste  import falar
-from metricas import (
-    envolver_falar,
-    etapa,
-    finalizar_ciclo_comando,
-    iniciar_ciclo_comando,
-    painel_memoria,
-    profiling_ativo,
-    publicar_relatorio,
-    texto_para_fala,
-    falar_relatorio_ativo,
-)
+from modules.voz_teste import falar
 
 logger = logging.getLogger(__name__)
 
 recognizer = sr.Recognizer()
 _microfone = sr.Microphone()
 
-# TTS continua em modules.voz_teste; metricas só cronometra quando o profiling está ligado.
-if profiling_ativo():
-    falar = envolver_falar(falar)
-
-# Ajustes para comandos curto
-recognizer.energy_threshold = 200
+recognizer.energy_threshold = 150
 recognizer.dynamic_energy_threshold = True
 recognizer.pause_threshold = 1.7
 recognizer.phrase_threshold = 0.3
@@ -42,60 +22,20 @@ recognizer.non_speaking_duration = 0.4
 COMANDO_FECHAR = frozenset({"fechar", "encerrar", "desligar"})
 
 
-def _informar_hora() -> None:
-
-    hora_atual = datetime.now().strftime("%H:%M:%S")
-    print(f"  Hora atual: {hora_atual}")
-    falar(f"  Hora atual: {hora_atual}")
-    logger.info("Hora informada: %s", hora_atual)
-
-
-def _informar_data() -> None:
-
-    data_atual = datetime.now().strftime("%d/%m/%Y")
-    print(f"  Data atual: {data_atual}")
-    falar(f"  Data atual: {data_atual}")
-    logger.info("Data informada: %s", data_atual)
-
 def _inicializar_executor() -> None:
-
-    from comd_rapidos.atalhos import Janela
-
-    janela = Janela()
-    janela.registrar_no_executor(registrar)
-
-    from comd_rapidos.atalho_nav import AtalhoNav
-
-    atalho_nav = AtalhoNav()
-    atalho_nav.registrar_no_executor(registrar)
-
-    from comd_rapidos.abrir_app import abrir_app
-
-    registrar("abrir_app", abrir_app)
-
-    from comd_rapidos.abrir_site import abrir_site
-
-    registrar("abrir_site", abrir_site)
-
-    registrar("informar_hora", _informar_hora)
-    registrar("informar_data", _informar_data)
-
-    logger.info(
-        "Executor inicializado com %d ação(ns).",
-        len(REGISTRO_ACOES),
-    )
+    registrar_comandos_padrao()
 
 
 def calibrar_microfone() -> None:
 
     try:
         print("Calibrando microfone...")
-        falar("Calibrando microfone senhor ")
 
         with _microfone as source:
             recognizer.adjust_for_ambient_noise(source, duration=1)
+
         print("Microfone calibrado.")
-        falar("Microfone calibrado senhor ")
+
         logger.info(
             "Microfone calibrado. energy_threshold=%s",
             recognizer.energy_threshold,
@@ -107,14 +47,13 @@ def calibrar_microfone() -> None:
 
 def capturar_audio() -> sr.AudioData:
     print("\nPode falar...")
-    falar("\nPode falar...")
+    falar("Pode falar...")
 
     with _microfone as source:
         return recognizer.listen(source)
 
 
 def transcrever_audio(audio: sr.AudioData) -> str | None:
-
     try:
         texto = recognizer.recognize_google(
             audio,
@@ -130,11 +69,11 @@ def transcrever_audio(audio: sr.AudioData) -> str | None:
 
     except sr.RequestError:
         print("Erro ao conectar ao serviço do Google.")
+        falar("Ocorreu um erro ao conectar ao serviço de reconhecimento.")
         return None
 
 
 def _exibir_banner() -> None:
-
     print()
     print("=" * 45)
     print("            AUTOWORK")
@@ -147,7 +86,6 @@ def _exibir_resultado(
     comando: dict | None,
     resultado_execucao: dict | None = None,
 ) -> None:
-
 
     print()
     print("  ▶ Texto capturado:    %s" % texto)
@@ -176,80 +114,99 @@ def _exibir_resultado(
         if mensagem:
             print("  ▶ %s" % mensagem)
 
+        erro = resultado_execucao.get("erro")
+        if erro:
+            print("  ▶ Erro:                %s" % erro)
 
-def _exibir_e_falar_memoria() -> None:
-    """Mostra e narra RAM coletada em metricas.py. Não mede aqui."""
-    bloco = painel_memoria.texto_terminal_comando()
-    if bloco:
-        print()
-        print(bloco)
-    texto_memoria = painel_memoria.texto_fala_comando()
-    falar(texto_memoria)
+        dados = resultado_execucao.get("dados")
+        if dados:
+            print(
+                "  ▶ Dados extraídos:     "
+                "(Estruturados para o Agente IA)"
+            )
 
 
 def processar_comando(texto: str) -> dict:
+    from dispatcher import dispatch
+    from interpretador import interpretar
 
-    _exibir_banner()
-    ciclo = iniciar_ciclo_comando()
-    medidor = ciclo.etapas if ciclo is not None else None
-    painel_memoria.marcar_antes_comando()
+    intencao = interpretar(texto)
+    tipo = intencao.get("tipo", "desconhecido")
 
-    with etapa(medidor, "normalizador"):
+    # Comando específico: o interpretador já passou pelo parser/resolvedor.
+    if tipo == "comando":
         normalizado = normalizar(texto)
-    logger.debug("Normalizado: %r", normalizado)
+        logger.debug("Normalizado: %r", normalizado)
 
-    with etapa(medidor, "parser"):
-        comando = parse(texto)
+        if intencao.get("resolvido") is False:
+            logger.debug(
+                "Resolvedor não encontrou ação para a intenção: %s",
+                intencao,
+            )
 
-    if comando is None:
-        logger.debug("Comando não reconhecido pelo parser: %r", normalizado or texto)
-        with etapa(medidor, "resposta"):
-            _exibir_resultado(texto, normalizado, None)
-        painel_memoria.marcar_depois_comando()
-        _exibir_e_falar_memoria()
-        _encerrar_metricas_ciclo()
-        return {"status": "nao_reconhecido", "texto": texto}
+            resultado = {
+                "status": "falha",
+                "acao": intencao.get("acao", ""),
+                "mensagem": "Não foi possível resolver a ação.",
+            }
+        else:
+            logger.debug("Executando comando: %s", intencao)
 
-    logger.debug("Executando comando: %s", comando)
-    acao = comando["acao"]
-    params = comando.get("parametros", {})
-    with etapa(medidor, "executor"):
-        resultado = executar(acao, **params)
+            resultado = executar(
+                intencao["acao"],
+                **intencao.get("parametros", {}),
+            )
 
-    with etapa(medidor, "resposta"):
-        _exibir_resultado(texto, normalizado, comando, resultado)
+        _exibir_resultado(texto, normalizado, intencao, resultado)
 
-    painel_memoria.marcar_depois_comando()
-    _exibir_e_falar_memoria()
-    _encerrar_metricas_ciclo()
+        mensagem = resultado.get("mensagem", "")
+
+        if mensagem:
+            falar(mensagem)
+
+        return resultado
+
+    # Intenção vazia: nada reconhecido.
+    if tipo == "desconhecido":
+        logger.debug("Intenção não reconhecida: %r", texto)
+
+        _exibir_resultado(texto, None, None)
+
+        falar("Não reconheci esse comando, senhor.")
+
+        return {
+            "status": "nao_reconhecido",
+            "texto": texto,
+        }
+
+    # Clima, hora, apresentação e conversa seguem pelo dispatcher.
+    resultado = dispatch(intencao)
+
+    _exibir_resultado(
+        texto,
+        None,
+        intencao,
+        resultado,
+    )
+
+    mensagem = resultado.get("mensagem", "")
+
+    if mensagem:
+        falar(mensagem)
+
     return resultado
 
 
-def _encerrar_metricas_ciclo() -> None:
-    relatorio = finalizar_ciclo_comando()
-    if relatorio is None:
-        return
-    publicar_relatorio(relatorio)
-    if falar_relatorio_ativo():
-        # Narração depois da coleta, para não entrar no tempo do comando.
-        falar(texto_para_fala(relatorio))
-
-
 def main() -> None:
-    painel_memoria.marcar_inicio_processo()
-
     _inicializar_executor()
-    painel_memoria.ler()
 
     calibrar_microfone()
+
     print("\nAUTOWORK pronto! Fale um comando.")
-    falar("\nAUTOWORK pronto! Fale um comando.")
+    falar("AUTOWORK pronto. Fale um comando, Marco .")
     print()
-    print(painel_memoria.texto_terminal_inicio())
-    falar(painel_memoria.texto_fala_inicio())
 
     while True:
-
         audio = capturar_audio()
 
         texto = transcrever_audio(audio)
@@ -259,6 +216,7 @@ def main() -> None:
 
         if texto in COMANDO_FECHAR:
             print("\nEncerrando AUTOWORK...")
+            falar("Encerrando AUTOWORK, senhor.")
             break
 
         processar_comando(texto)

@@ -1,0 +1,114 @@
+{
+  "toquio": {
+    "nome": "Tóquio",
+    "pais": "Japão",
+    "timezone": "Asia/Tokyo",
+    "lat": 35.6762,
+    "lon": 139.6503
+  },
+  "londres": {
+    "nome": "Londres",
+    "pais": "Reino Unido",
+    "timezone": "Europe/London",
+    "lat": 51.5074,
+    "lon": -0.1278
+  },
+  "paris": {
+    "nome": "Paris",
+    "pais": "França",
+    "timezone": "Europe/Paris",
+    "lat": 48.8566,
+    "lon": 2.3522
+  },
+  "washington": {
+    "nome": "Washington",
+    "pais": "Estados Unidos",
+    "timezone": "America/New_York",
+    "lat": 38.9072,
+    "lon": -77.0369
+  },
+  "nova york": {
+    "nome": "Nova York",
+    "pais": "Estados Unidos",
+    "timezone": "America/New_York",
+    "lat": 40.7128,
+    "lon": -74.006
+  },
+  "ottawa": {
+    "nome": "Ottawa",
+    "pais": "Canadá",
+    "timezone": "America/Toronto",
+    "lat": 45.4215,
+    "lon": -75.6972
+  },
+  "berlim": {
+    "nome": "Berlim",
+    "pais": "Alemanha",
+    "timezone": "Europe/Berlin",
+    "lat": 52.52,
+    "lon": 13.405
+  },
+  "roma": {
+    "nome": "Roma",
+    "pais": "Itália",
+    "timezone": "Europe/Rome",
+    "lat": 41.9028,
+    "lon": 12.4964
+  },
+  "madri": {
+    "nome": "Madri",
+    "pais": "Espanha",
+    "timezone": "Europe/Madrid",
+    "lat": 40.4168,
+    "lon": -3.7038
+  },
+  "lisboa": {
+    "nome": "Lisboa",
+    "pais": "Portugal",
+    "timezone": "Europe/Lisbon",
+    "lat": 38.7223,
+    "lon": -9.1393
+  },
+  "buenos aires": {
+    "nome": "Buenos Aires",
+    "pais": "Argentina",
+    "timezone": "America/Argentina/Buenos_Aires",
+    "lat": -34.6037,
+    "lon": -58.3816
+  },
+  "santiago": {
+    "nome": "Santiago",
+    "pais": "Chile",
+    "timezone": "America/Santiago",
+    "lat": -33.4489,
+    "lon": -70.6693
+  },
+  "montevideu": {
+    "nome": "Montevidéu",
+    "pais": "Uruguai",
+    "timezone": "America/Montevideo",
+    "lat": -34.9011,
+    "lon": -56.1645
+  },
+  "pequim": {
+    "nome": "Pequim",
+    "pais": "China",
+    "timezone": "Asia/Shanghai",
+    "lat": 39.9042,
+    "lon": 116.4074
+  },
+  "seul": {
+    "nome": "Seul",
+    "pais": "Coreia do Sul",
+    "timezone": "Asia/Seoul",
+    "lat": 37.5665,
+    "lon": 126.978
+  },
+  "moscou": {
+    "nome": "Moscou",
+    "pais": "Rússia",
+    "timezone": "Europe/Moscow",
+    "lat": 55.7558,
+    "lon": 37.6173
+  }
+}

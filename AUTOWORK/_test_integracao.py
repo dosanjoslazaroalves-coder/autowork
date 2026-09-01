@@ -82,7 +82,11 @@ def _testar_pipeline(
     normalizado = normalizar(texto_fala)
 
     # 2. Parser
-    comando = parse(texto_fala)
+    intencao = parse(texto_fala)
+    
+    # 2.5 Resolvedor
+    from sistema_toke.resolvedor import resolver
+    comando = resolver(intencao) if intencao else None
 
     print(f"Teste: {descricao}")
     print(f"  Texto:          {texto_fala}")

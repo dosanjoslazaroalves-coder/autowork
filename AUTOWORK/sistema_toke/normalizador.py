@@ -4,7 +4,7 @@ import logging
 import re
 from typing import List, Optional, Tuple
 
-from sistema_toke.catalogo import (
+from sistema_toke.catalogo.catalogo_verbo import (
     MAPA_VERBOS,
     PALAVRAS_DESCARTE,
     VERBOS_POR_ACAO,

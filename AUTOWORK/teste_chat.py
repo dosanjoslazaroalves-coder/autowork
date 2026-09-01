@@ -35,7 +35,7 @@ def main() -> None:
 
     while True:
         try:
-            entrada = input("Você: ").strip()
+            entrada = str(input("Você: ")).strip()
         except (EOFError, KeyboardInterrupt):
             print()
             print("AUTOWORK: Até logo.")

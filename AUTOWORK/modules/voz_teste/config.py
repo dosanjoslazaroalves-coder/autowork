@@ -10,12 +10,12 @@ MODEL_REPO = "hexgrad/Kokoro-82M"
 
 # Português brasileiro (Kokoro lang_code "p" -> espeak "pt-br")
 LANG_CODE = "p"
-VOICE = "pm_alex"
+VOICE = "pm_santa"
 SPEED = 0.85
 SAMPLE_RATE = 24000
 
 # Vozes PT-BR suportadas pelo Kokoro
-VOZES_PT_BR = ("pf_dora", "pm_alex", "pm_santa")
+VOZES_PT_BR = ("pf_dora","bm_george", "pm_santa")
 
 # eSpeak NG nativo (Windows)
 ESPEAK_DIR = Path(r"C:\Program Files\eSpeak NG")

@@ -17,8 +17,6 @@ from openai import (
 
 from conversa.prompt import SYSTEM_PROMPT
 
-# Coloque a chave da API do OpenRouter aqui (começa com sk-or-v1-).
-# Se deixar SUA_CHAVE_AQUI, o programa tenta OPENROUTER_API_KEY ou CHAVE_API_CHAT.
 OPENROUTER_API_KEY = "SUA_CHAVE_AQUI"
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
@@ -69,7 +67,6 @@ def carregar_api_key() -> str:
 
 
 class Chatbot:
-    """Camada de conversa: OpenRouter, histórico temporário e resposta textual."""
 
     def __init__(
         self,
