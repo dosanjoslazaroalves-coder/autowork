@@ -93,6 +93,19 @@ class Chatbot:
     def limpar_historico(self) -> None:
         self._historico = [{"role": "system", "content": SYSTEM_PROMPT}]
 
+    def responder(self, mensagem: str) -> dict[str, Any]:
+        """Interface estruturada para o orquestrador.
+
+        Devolve {"tipo", "mensagem", "sucesso"} sem tocar o áudio; a
+        política de voz (terminal + TTS) fica centralizada no fala.py.
+        """
+        conteudo = self.enviar(mensagem)
+        return {
+            "tipo": "conversa",
+            "mensagem": conteudo,
+            "sucesso": bool(conteudo) and conteudo != MENSAGEM_FALHA,
+        }
+
     def enviar(self, mensagem: str) -> str:
         texto = mensagem.strip()
         if not texto:

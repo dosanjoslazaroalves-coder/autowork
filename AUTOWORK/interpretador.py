@@ -178,6 +178,7 @@ def interpretar(texto: str) -> dict[str, Any] | None:
                 "parametros": dict(resolvido.get("parametros", {})),
                 "confianca": 0.99,
                 "fala": "",
+                "falar": False,
             }
 
         # Parser reconheceu a ação, mas o alvo não existe (app/site desconhecido).
@@ -187,6 +188,7 @@ def interpretar(texto: str) -> dict[str, Any] | None:
             "parametros": {"alvo": comando.get("alvo"), "texto_original": texto},
             "confianca": 0.6,
             "fala": "",
+            "falar": False,
             "resolvido": False,
         }
 
@@ -235,12 +237,20 @@ def interpretar(texto: str) -> dict[str, Any] | None:
     if re.search(r"\b(hora|horas|horário|horario)\b", frase):
         return _intencao("consultar_horario", {"local": _extrair_local(frase)}, tipo="hora")
 
-    # 4. Apresentação do AUTOWORK (limitada ao projeto, para não capturar
-    #    pedidos genéricos de explicação, que vão para o chatbot)
+    # Localização do usuário ("onde estou?") — o módulo não recebe parâmetros.
     if re.search(
-        r"\b(se apresente?|se apresenta|quem (é|e) (você|voce)"
+        r"\b(onde (eu )?estou|minha localiza(ç|c)(ã|a)o"
+        r"|em que (cidade|pa(í|i)s|lugar|estado) (eu )?estou)\b",
+        frase,
+    ):
+        return _intencao("consultar_localizacao", {}, tipo="informacao")
+
+    # 4. Apresentação do AUTOWORK — apenas pedidos explícitos de apresentação.
+    #    Perguntas de identidade/capacidade ("quem é você?", "o que você
+    #    pode fazer?") ficam para o chatbot, que conhece o AUTOWORK.
+    if re.search(
+        r"\b(se apresente?|se apresenta|se apresentar"
         r"|o que (é|e) o (autowork|projeto)"
-        r"|o que (você |voce )?(faz|consegue fazer)"
         r"|(me )?explique o (projeto|autowork)"
         r"|fale sobre o autowork)\b",
         frase,
@@ -254,6 +264,7 @@ def interpretar(texto: str) -> dict[str, Any] | None:
         "parametros": {"texto_original": texto},
         "confianca": 0.5,
         "fala": "",
+        "falar": True,
     }
 
 
@@ -267,6 +278,7 @@ def _intencao(
     parametros: dict[str, Any],
     tipo: str = "informacao",
     confianca: float = 0.95,
+    falar: bool = True,
 ) -> dict[str, Any]:
     return {"tipo": tipo, "acao": acao, "parametros": parametros,
-            "confianca": confianca, "fala": ""}
+            "confianca": confianca, "fala": "", "falar": falar}

@@ -1,3 +1,27 @@
+# Core
+SpeechRecognition>=3.10.0
+PyAudio>=0.2.14
+
+# Interface HUD (TUI)
+textual>=0.86
+
+# Automação
+pyautogui>=0.9.54
+psutil>=5.9.0
+
+# LLM / Chat
 openai>=1.40.0
-tzdata>=2024.1
 requests>=2.31.0
+
+# Dados
+tzdata>=2024.1
+
+# TTS (Kokoro) — instalação manual recomendada
+# kokoro>=0.9
+# torch>=2.0
+# sounddevice>=0.4.6
+# numpy>=1.24
+# scipy>=1.11
+# misaki
+# phonemizer-fork
+# espeakng-loader

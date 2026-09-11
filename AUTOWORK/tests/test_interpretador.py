@@ -15,7 +15,7 @@ class TestRoteamento(unittest.TestCase):
     def test_estrutura_consistente(self):
         for texto in ("abrir o chrome", "que horas são", "conte uma piada"):
             intencao = interpretar(texto)
-            for chave in ("tipo", "acao", "parametros", "confianca", "fala"):
+            for chave in ("tipo", "acao", "parametros", "confianca", "fala", "falar"):
                 self.assertIn(chave, intencao, texto)
 
     def test_comandos(self):
@@ -75,12 +75,24 @@ class TestRoteamento(unittest.TestCase):
         self.assertEqual(intencao["parametros"]["local"], "recife")
         self.assertEqual(intencao["parametros"]["data"], "amanhã")
 
+    def test_localizacao(self):
+        casos = (
+            "onde estou?",
+            "qual é a minha localização?",
+            "em que cidade eu estou?",
+        )
+        for texto in casos:
+            tipo, acao = self._tipo_acao(texto)
+            self.assertEqual(tipo, "informacao", texto)
+            self.assertEqual(acao, "consultar_localizacao", texto)
+
     def test_apresentacao(self):
         casos = (
+            "se apresente",
+            "se apresentar",
             "o que é o AUTOWORK?",
-            "quem é você?",
-            "o que você consegue fazer?",
             "me explique o projeto",
+            "fale sobre o autowork",
         )
         for texto in casos:
             tipo, acao = self._tipo_acao(texto)
@@ -92,6 +104,9 @@ class TestRoteamento(unittest.TestCase):
             "explique inteligência artificial para mim",
             "conte uma piada",
             "qual o sentido da vida",
+            "quem é você?",
+            "o que você consegue fazer?",
+            "o que você pode fazer?",
         )
         for texto in casos:
             tipo, acao = self._tipo_acao(texto)
@@ -106,6 +121,22 @@ class TestRoteamento(unittest.TestCase):
     def test_desconhecido(self):
         intencao = interpretar("   ")
         self.assertEqual(intencao["tipo"], "desconhecido")
+
+    def test_comando_nao_deve_ser_falado(self):
+        intencao = interpretar("abrir o Chrome")
+        self.assertFalse(intencao.get("falar"))
+
+    def test_respostas_informativas_devem_ser_faladas(self):
+        casos = (
+            "que horas são?",
+            "como está o clima?",
+            "onde estou?",
+            "se apresente",
+            "conte uma piada",
+        )
+        for texto in casos:
+            intencao = interpretar(texto)
+            self.assertTrue(intencao.get("falar"), texto)
 
 
 if __name__ == "__main__":

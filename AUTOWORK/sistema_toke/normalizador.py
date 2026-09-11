@@ -96,22 +96,6 @@ def _exibir_debug(
     logger.debug("Resultado: %r", resultado)
     logger.debug("===========================")
 
-    # Print para terminal durante desenvolvimento
-    print("  Texto original: %s" % texto_original)
-    print("  Texto limpo:   %s" % texto_limpo)
-    print("  Tokens:        %s" % tokens)
-
-    if verbo_info:
-        idx_inicio, idx_fim, verbo = verbo_info
-        trecho_verbo = " ".join(tokens[idx_inicio:idx_fim])
-        print("  Verbo:         %s (canônico: %s, índice: %d:%d)" % (trecho_verbo, verbo, idx_inicio, idx_fim))
-    else:
-        print("  Verbo:         não encontrado")
-
-    print("  Objeto:        %s" % (objeto or "não encontrado"))
-    print("  Normalizado:   %s" % (resultado or "None"))
-    print()
-
 
 def normalizar(texto: str) -> Optional[str]:
 

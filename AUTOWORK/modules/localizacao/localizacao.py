@@ -9,6 +9,63 @@ from urllib.request import Request, urlopen
 class LocalizacaoError(RuntimeError):
     pass
 
+
+def localizar_usuario(timeout: int = 5) -> dict:
+    """Localiza o usuário pela geolocalização do IP (ip-api.com).
+
+    Retorna estrutura compatível com os módulos de clima e tempo:
+    {sucesso, acao, dados, mensagem, erro}.
+    """
+    url = (
+        "http://ip-api.com/json/"
+        "?fields=status,city,regionName,country,lat,lon,timezone&lang=pt-BR"
+    )
+    try:
+        req = Request(url, headers={"User-Agent": "AUTOWORK/1.0"})
+        with urlopen(req, timeout=timeout) as resposta:
+            dados = json.loads(resposta.read())
+
+        if dados.get("status") != "success" or not dados.get("city"):
+            raise LocalizacaoError("Não foi possível determinar a localização.")
+
+        cidade = dados["city"]
+        regiao = dados.get("regionName", "")
+        pais = dados.get("country", "")
+
+        partes = [cidade] + [p for p in (regiao, pais) if p]
+        mensagem = "Você está em " + ", ".join(partes) + "."
+
+        return {
+            "sucesso": True,
+            "acao": "consultar_localizacao",
+            "dados": {
+                "cidade": cidade,
+                "regiao": regiao,
+                "pais": pais,
+                "latitude": dados.get("lat"),
+                "longitude": dados.get("lon"),
+                "timezone": dados.get("timezone"),
+            },
+            "mensagem": mensagem,
+            "erro": None,
+        }
+    except LocalizacaoError as e:
+        return {
+            "sucesso": False,
+            "acao": "consultar_localizacao",
+            "dados": None,
+            "mensagem": "Não consegui obter a sua localização.",
+            "erro": str(e),
+        }
+    except Exception:
+        return {
+            "sucesso": False,
+            "acao": "consultar_localizacao",
+            "dados": None,
+            "mensagem": "Não consegui obter a sua localização.",
+            "erro": "api_indisponivel",
+        }
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DADOS_DIR = os.path.join(BASE_DIR, "dados")
 

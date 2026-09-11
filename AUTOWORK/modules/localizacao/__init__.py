@@ -1,3 +1,3 @@
-from .localizacao import resolver_localidade, LocalizacaoError
+from .localizacao import localizar_usuario, resolver_localidade, LocalizacaoError
 
-__all__ = ["resolver_localidade", "LocalizacaoError"]
+__all__ = ["localizar_usuario", "resolver_localidade", "LocalizacaoError"]
