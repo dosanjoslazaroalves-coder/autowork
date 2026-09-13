@@ -7,9 +7,9 @@ from typing import Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
-WAKE_WORD = "auto"
+WAKE_WORD = "work"
 # Variantes comuns de transcrição incorreta pelo Google STT
-_VARIANTES = frozenset({"autowork", "auto work", "auto-work", "auto"})
+_VARIANTES = frozenset({ "work", "auto-work", "auto"})
 
 
 def detectar(texto: Optional[str]) -> Tuple[bool, str]:

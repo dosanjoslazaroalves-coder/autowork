@@ -29,8 +29,8 @@ class Janela:
             "restaurar_ou_minimizar_janela",
             self.restaurar_ou_minimizar_janela,
         )
-        registrar_fn("encaixar_janela_esquerda", self.encaixar_janela_esquerda)
-        registrar_fn("encaixar_janela_direita", self.encaixar_janela_direita)
+        registrar_fn("mover_janela_esquerda", self.mover_janela_esquerda)
+        registrar_fn("mover_janela_direita", self.mover_janela_direita)
         registrar_fn("abrir_visao_de_tarefas", self.abrir_visao_de_tarefas)
         registrar_fn("bloquear_tela", self.bloquear_tela)
         self.logger.info(
@@ -69,15 +69,15 @@ class Janela:
         time.sleep(self.pausa)
         pyautogui.hotkey("win", "down")
 
-    def encaixar_janela_esquerda(self) -> None:
+    def mover_janela_esquerda(self) -> None:
 
-        self.logger.info("Encaixando janela à esquerda")
+        self.logger.info("Mover janela à esquerda")
         time.sleep(self.pausa)
         pyautogui.hotkey("win", "left")
 
-    def encaixar_janela_direita(self) -> None:
+    def mover_janela_direita(self) -> None:
 
-        self.logger.info("Encaixando janela à direita")
+        self.logger.info("Mover janela à direita")
         time.sleep(self.pausa)
         pyautogui.hotkey("win", "right")
 
