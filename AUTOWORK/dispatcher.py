@@ -113,7 +113,12 @@ def dispatch(comando: dict[str, Any]) -> dict[str, Any]:
         }
 
     try:
-        resultado = funcoes[acao](**parametros)
+        # ``texto_original`` é metadado da intenção usado para rastreamento e
+        # conversa, não um argumento dos módulos informativos. Não o repasse
+        # às funções para evitar quebrar suas assinaturas públicas.
+        parametros_execucao = dict(parametros)
+        parametros_execucao.pop("texto_original", None)
+        resultado = funcoes[acao](**parametros_execucao)
 
         sucesso = bool(resultado.get("sucesso"))
         resultado["status"] = "sucesso" if sucesso else "falha"

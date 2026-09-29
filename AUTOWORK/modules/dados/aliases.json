@@ -21,6 +21,18 @@
   "porto alegre": "porto alegre-rs",
   "japao": "toquio",
   "brasil": "brasilia-df",
-  "eua": "washington",
-  "estados unidos": "washington"
+  "eua": "estados unidos",
+  "inglaterra": "reino unido",
+  "cidade do mexico": "mexico",
+  "nova delhi": "india",
+  "canberra": "australia",
+  "cairo": "egito",
+  "pretoria": "africa do sul",
+  "riad": "arabia saudita",
+  "ancara": "turquia",
+  "washington dc": "estados unidos",
+  "washington d c": "estados unidos",
+  "capital japonesa": "japao",
+  "capital inglesa": "reino unido",
+  "capital francesa": "franca"
 }

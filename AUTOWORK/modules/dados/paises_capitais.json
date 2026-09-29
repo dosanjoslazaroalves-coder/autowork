@@ -1,0 +1,149 @@
+{
+  "brasil": {
+    "pais": "Brasil",
+    "capital": "Brasília",
+    "timezone": "America/Sao_Paulo",
+    "lat": -15.7939,
+    "lon": -47.8828
+  },
+  "estados unidos": {
+    "pais": "Estados Unidos",
+    "capital": "Washington, D.C.",
+    "timezone": "America/New_York",
+    "lat": 38.9072,
+    "lon": -77.0369
+  },
+  "canada": {
+    "pais": "Canadá",
+    "capital": "Ottawa",
+    "timezone": "America/Toronto",
+    "lat": 45.4215,
+    "lon": -75.6972
+  },
+  "mexico": {
+    "pais": "México",
+    "capital": "Cidade do México",
+    "timezone": "America/Mexico_City",
+    "lat": 19.4326,
+    "lon": -99.1332
+  },
+  "argentina": {
+    "pais": "Argentina",
+    "capital": "Buenos Aires",
+    "timezone": "America/Argentina/Buenos_Aires",
+    "lat": -34.6037,
+    "lon": -58.3816
+  },
+  "reino unido": {
+    "pais": "Reino Unido",
+    "capital": "Londres",
+    "timezone": "Europe/London",
+    "lat": 51.5074,
+    "lon": -0.1278
+  },
+  "franca": {
+    "pais": "França",
+    "capital": "Paris",
+    "timezone": "Europe/Paris",
+    "lat": 48.8566,
+    "lon": 2.3522
+  },
+  "alemanha": {
+    "pais": "Alemanha",
+    "capital": "Berlim",
+    "timezone": "Europe/Berlin",
+    "lat": 52.52,
+    "lon": 13.405
+  },
+  "italia": {
+    "pais": "Itália",
+    "capital": "Roma",
+    "timezone": "Europe/Rome",
+    "lat": 41.9028,
+    "lon": 12.4964
+  },
+  "espanha": {
+    "pais": "Espanha",
+    "capital": "Madri",
+    "timezone": "Europe/Madrid",
+    "lat": 40.4168,
+    "lon": -3.7038
+  },
+  "portugal": {
+    "pais": "Portugal",
+    "capital": "Lisboa",
+    "timezone": "Europe/Lisbon",
+    "lat": 38.7223,
+    "lon": -9.1393
+  },
+  "russia": {
+    "pais": "Rússia",
+    "capital": "Moscou",
+    "timezone": "Europe/Moscow",
+    "lat": 55.7558,
+    "lon": 37.6173
+  },
+  "china": {
+    "pais": "China",
+    "capital": "Pequim",
+    "timezone": "Asia/Shanghai",
+    "lat": 39.9042,
+    "lon": 116.4074
+  },
+  "japao": {
+    "pais": "Japão",
+    "capital": "Tóquio",
+    "timezone": "Asia/Tokyo",
+    "lat": 35.6762,
+    "lon": 139.6503
+  },
+  "coreia do sul": {
+    "pais": "Coreia do Sul",
+    "capital": "Seul",
+    "timezone": "Asia/Seoul",
+    "lat": 37.5665,
+    "lon": 126.978
+  },
+  "india": {
+    "pais": "Índia",
+    "capital": "Nova Délhi",
+    "timezone": "Asia/Kolkata",
+    "lat": 28.6139,
+    "lon": 77.209
+  },
+  "australia": {
+    "pais": "Austrália",
+    "capital": "Canberra",
+    "timezone": "Australia/Sydney",
+    "lat": -35.2809,
+    "lon": 149.13
+  },
+  "egito": {
+    "pais": "Egito",
+    "capital": "Cairo",
+    "timezone": "Africa/Cairo",
+    "lat": 30.0444,
+    "lon": 31.2357
+  },
+  "africa do sul": {
+    "pais": "África do Sul",
+    "capital": "Pretória",
+    "timezone": "Africa/Johannesburg",
+    "lat": -25.7479,
+    "lon": 28.2293
+  },
+  "arabia saudita": {
+    "pais": "Arábia Saudita",
+    "capital": "Riad",
+    "timezone": "Asia/Riyadh",
+    "lat": 24.7136,
+    "lon": 46.6753
+  },
+  "turquia": {
+    "pais": "Turquia",
+    "capital": "Ancara",
+    "timezone": "Europe/Istanbul",
+    "lat": 39.9334,
+    "lon": 32.8597
+  }
+}

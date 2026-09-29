@@ -13,8 +13,14 @@ OnNivelCallback = Callable[[float], None]
 # Janela do envelope de níveis do TTS, em segundos.
 _JANELA_NIVEL = 0.06
 
+_falar_kokoro: Optional[Callable[..., None]] = None
 
-def falar(texto: Optional[str]) -> None:
+
+def falar(
+    texto: Optional[str],
+    voice: Optional[str] = None,
+    speed: Optional[float] = None,
+) -> None:
     """Sintetiza e reproduz texto via Kokoro TTS.
 
     Se o texto for vazio ou None, a chamada é ignorada silenciosamente.
@@ -25,10 +31,13 @@ def falar(texto: Optional[str]) -> None:
         logger.debug("TTS: texto vazio, ignorando.")
         return
 
-    from modules.voz_teste import falar as _falar_kokoro
+    global _falar_kokoro
+    if _falar_kokoro is None:
+        from modules.voz_teste import falar as _falar_motor
+        _falar_kokoro = _falar_motor
 
     try:
-        _falar_kokoro(texto)
+        _falar_kokoro(texto, voice=voice, speed=speed)
     except Exception as exc:
         logger.error("Falha no TTS: %s", exc)
 
@@ -52,7 +61,12 @@ def _envelope(audio, taxa_amostragem: int) -> List[float]:
     return [float(n) for n in niveis]
 
 
-def falar_com_niveis(texto: Optional[str], on_nivel: OnNivelCallback) -> None:
+def falar_com_niveis(
+    texto: Optional[str],
+    on_nivel: OnNivelCallback,
+    voice: Optional[str] = None,
+    speed: Optional[float] = None,
+) -> None:
     """Reproduz texto via TTS emitindo os níveis reais do áudio sintetizado.
 
     O envelope é calculado sobre a própria forma de onda gerada pelo Kokoro
@@ -67,11 +81,11 @@ def falar_com_niveis(texto: Optional[str], on_nivel: OnNivelCallback) -> None:
         from modules.voz_teste import gerar_audio
         from modules.voz_teste import config as config_tts
 
-        audio = gerar_audio(texto)
+        audio = gerar_audio(texto, voice=voice, speed=speed)
         envelope = _envelope(audio, config_tts.SAMPLE_RATE)
     except Exception as exc:
         logger.error("Falha ao gerar TTS com níveis: %s", exc)
-        falar(texto)
+        falar(texto, voice=voice, speed=speed)
         return
 
     try:

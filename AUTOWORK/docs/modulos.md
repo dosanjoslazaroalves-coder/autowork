@@ -428,6 +428,28 @@ Esta pagina documenta todos os arquivos `.py` encontrados fora de `.venv`, `__py
 
 **Funcao:** `resolver(intencao)` trata comandos prontos, atalhos, apps e sites; retorna dict `acao/parametros` ou `None`.
 
+## Pacote `persn_emcoes`
+
+### `persn_emcoes/__init__.py`
+
+**Responsabilidade:** expor a API pública da camada de personalidade e manifestações emocionais simuladas (`Personalidade`, `EstadoEmocional`, `ControladorEmocional`, `GerenciadorFeedback`, `GeradorSaudacao`, `obter_saudacao`, `obter_despedida`, `estilizar_fala`).
+
+### `persn_emcoes/estado.py`
+
+**Responsabilidade:** modelar estados emocionais simulados (`neutro`, `atento`, `processando`, `satisfeito`, `alerta`, `erro`, `concluido`) e posturas verbais através de `ControladorEmocional`. Não afirma possuir emoções biológicas.
+
+### `persn_emcoes/saudacao.py`
+
+**Responsabilidade:** gerar saudações contextuais com base no período (manhã, tarde, noite), dia da semana em português e data, além de despedidas, com alternância de variações para evitar repetição consecutiva.
+
+### `persn_emcoes/feedback.py`
+
+**Responsabilidade:** monitorar em background operações demoradas via `GerenciadorFeedback`, emitindo falas curtas de espera caso o tempo limite seja ultrapassado e evitando mensagens durante respostas rápidas.
+
+### `persn_emcoes/personalidade.py`
+
+**Responsabilidade:** núcleo de conduta comunicativa e personificação do AUTOWORK. Centraliza confirmações de conclusão, falas para comandos não reconhecidos, mensagens de erro amigáveis e estilização de linguagem.
+
 ## Testes em `tests/`
 
 ### `tests/test_captura.py`
@@ -473,6 +495,10 @@ Cobre chamada a `audio.tts.falar` e texto vazio. O patch usa `audio.tts._falar_k
 ### `tests/test_tudo.py`
 
 Cobre localizacao, datas, horario, diferenca e clima com dados/API reais.
+
+### `tests/test_persn_emcoes.py`
+
+Valida os 10 cenários da camada `persn_emcoes`: saudações nos 3 períodos (manhã/tarde/noite), dia da semana em português, alternância anti-repetição de falas, feedback temporal de espera, controle anti-spam para respostas rápidas, máquina de estados emocionais simulados, integração de eventos com interface/TTS e inicialização do assistente.
 
 ### `tests/test_wake_word.py`
 

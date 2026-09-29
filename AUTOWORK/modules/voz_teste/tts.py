@@ -286,9 +286,15 @@ def _get_sounddevice():
     return _SOUNDEVICE
 
 
-def gerar_audio(texto: str):
-    """Converte texto em array numpy float32 (24 kHz)."""
+def gerar_audio(
+    texto: str,
+    voice: Optional[str] = None,
+    speed: Optional[float] = None,
+):
+    """Converte texto em array numpy float32 (24 kHz).
 
+    Suporta parâmetros opcionais de voz e velocidade de elocução.
+    """
     if not texto or not texto.strip():
         raise _format_error(
             etapa="geração de áudio",
@@ -299,12 +305,14 @@ def gerar_audio(texto: str):
         )
 
     pipeline = _get_pipeline()
+    voz_final = voice if (voice and voice in config.VOZES_PT_BR) else config.VOICE
+    velocidade_final = float(speed) if (speed is not None and speed > 0) else config.SPEED
 
     try:
         generator = pipeline(
             texto,
-            voice=config.VOICE,
-            speed=config.SPEED,
+            voice=voz_final,
+            speed=velocidade_final,
             split_pattern=r"\n+",
         )
         chunks = []
@@ -323,7 +331,12 @@ def gerar_audio(texto: str):
         ) from exc
 
 
-def salvar_audio(texto: str, caminho: str | Path) -> Path:
+def salvar_audio(
+    texto: str,
+    caminho: str | Path,
+    voice: Optional[str] = None,
+    speed: Optional[float] = None,
+) -> Path:
     """Gera áudio e salva em arquivo WAV."""
 
     try:
@@ -340,15 +353,19 @@ def salvar_audio(texto: str, caminho: str | Path) -> Path:
     destino = Path(caminho)
     destino.parent.mkdir(parents=True, exist_ok=True)
 
-    audio = gerar_audio(texto)
+    audio = gerar_audio(texto, voice=voice, speed=speed)
     wavfile.write(str(destino), config.SAMPLE_RATE, audio)
     return destino
 
 
-def falar(texto: str) -> None:
+def falar(
+    texto: str,
+    voice: Optional[str] = None,
+    speed: Optional[float] = None,
+) -> None:
     """Gera áudio e reproduz no dispositivo padrão do sistema."""
 
-    audio = gerar_audio(texto)
+    audio = gerar_audio(texto, voice=voice, speed=speed)
     sd = _get_sounddevice()
 
     try:

@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 import logging
+import threading
 from typing import Any, Callable, Dict, Optional
 
 from core.estados import Estado
+from persn_emcoes import EstadoEmocional, Personalidade
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +16,21 @@ OnEstadoCallback = Callable[[Estado], None]
 COMANDO_FECHAR = frozenset({"fechar", "encerrar", "desligar"})
 
 # Status que merecem resposta por voz mesmo sem a flag "falar" explícita.
-STATUS_FALAVEIS = frozenset({"falha", "nao_reconhecido", "acao_nao_encontrada"})
+STATUS_FALAVEIS = frozenset({
+    "falha",
+    "nao_reconhecido",
+    "acao_nao_encontrada",
+    "nao_confirmado",
+    "contrato_invalido",
+    "erro_excecao",
+})
+STATUS_ERRO = frozenset({
+    "falha",
+    "nao_confirmado",
+    "acao_nao_encontrada",
+    "contrato_invalido",
+    "erro_excecao",
+})
 
 
 class Orquestrador:
@@ -25,22 +41,36 @@ class Orquestrador:
     ausentes são simplesmente ignorados.
     """
 
+    # Duração da janela de escuta ativa (segundos).
+    _JANELA_ATIVA_SEGUNDOS = 180
+
     def __init__(
         self,
         servico_captura,       # audio.captura.ServicoCaptura
         servico_stt,           # audio.reconhecimento.ServicoReconhecimento
         on_estado: Optional[OnEstadoCallback] = None,
         ouvinte: Optional[Any] = None,
+        personalidade: Optional[Personalidade] = None,
     ) -> None:
         from sistema_toke.executor import registrar_comandos_padrao
         registrar_comandos_padrao()
 
         self._captura = servico_captura
         self._stt = servico_stt
+        self._personalidade = personalidade or Personalidade()
         self._estado = Estado.INICIALIZANDO
         self._on_estado = on_estado or (lambda e: None)
         self._ouvinte = ouvinte
         self._rodando = False
+        self._lock_processamento = threading.RLock()
+        # Controle de escuta REPOUSO/ATIVO
+        self._modo_ativo = False       # True = aceita comandos sem wake word
+        self._ativo_ate: float = 0.0   # time.monotonic() do fim da janela
+
+    @property
+    def personalidade(self) -> Personalidade:
+        """Camada de personalidade e manifestações emocionais simuladas."""
+        return self._personalidade
 
     @property
     def estado(self) -> Estado:
@@ -69,6 +99,32 @@ class Orquestrador:
     def _tem_ouvinte(self, metodo: str) -> bool:
         return self._ouvinte is not None and hasattr(self._ouvinte, metodo)
 
+    # ── Controle de escuta REPOUSO / ATIVO ──────────────────────────
+
+    def _ativar_escuta(self) -> None:
+        """Entra (ou renova) MODO ATIVO: aceita comandos sem wake word."""
+        import time as _time
+        self._modo_ativo = True
+        self._ativo_ate = _time.monotonic() + self._JANELA_ATIVA_SEGUNDOS
+        logger.info(
+            "[ESCUTA] MODO ATIVO — janela de %ds iniciada.",
+            self._JANELA_ATIVA_SEGUNDOS,
+        )
+
+    def _verificar_janela_ativa(self) -> bool:
+        """Retorna True se o MODO ATIVO ainda é válido; expira se necessário."""
+        if not self._modo_ativo:
+            return False
+        import time as _time
+        if _time.monotonic() >= self._ativo_ate:
+            self._modo_ativo = False
+            self._ativo_ate = 0.0
+            logger.info("[ESCUTA] Janela expirou — MODO REPOUSO.")
+            return False
+        return True
+
+    # ────────────────────────────────────────────────────────────────
+
     def inicializar(self) -> None:
         """Calibra microfone e prepara o sistema."""
         self._set_estado(Estado.INICIALIZANDO)
@@ -77,16 +133,28 @@ class Orquestrador:
 
     def executar_loop(self) -> None:
         """Loop principal do assistente."""
-        from audio.tts import falar
         from interface.terminal import mostrar_status, mostrar_banner
 
         mostrar_banner()
-        falar("AUTOWORK pronto. Fale um comando.")
-        mostrar_status("AUTOWORK pronto! Diga 'Autowork' seguido do comando.")
+        saudacao = self._personalidade.saudar()
+        mostrar_status(f"AUTOWORK online! {saudacao}")
+        self._notificar_ouvinte("ao_resposta", {"mensagem": saudacao})
+        self._set_estado(Estado.FALANDO)
+        self._falar_resposta(saudacao)
+        self._set_estado(Estado.IDLE)
 
         self._rodando = True
         while self._rodando:
             self._ciclo()
+
+    def _ao_feedback_espera(self, mensagem: str) -> None:
+        """Emite fala curta de espera durante processamentos demorados."""
+        logger.info("[FEEDBACK ESPERA] %s", mensagem)
+        self._notificar_ouvinte("ao_resposta", {"mensagem": mensagem})
+        try:
+            self._falar_resposta(mensagem)
+        except Exception:
+            pass
 
     def _capturar_com_ou_sem_niveis(self):
         """Captura áudio, emitindo níveis reais se o ouvinte os consumir."""
@@ -101,13 +169,18 @@ class Orquestrador:
         self._notificar_ouvinte("ao_nivel", rms)
 
     def _falar_resposta(self, mensagem: str) -> None:
-        """Fala a mensagem emitindo níveis reais quando a interface os usa."""
+        """Fala a mensagem emitindo níveis reais e aplicando características da personalidade."""
         import audio.tts as tts
 
+        config_fala = self._personalidade.configurar_fala(mensagem)
+        texto = config_fala.texto
+        velocidade = config_fala.velocidade
+        voz = config_fala.voz
+
         if self._tem_ouvinte("ao_nivel") and hasattr(tts, "falar_com_niveis"):
-            tts.falar_com_niveis(mensagem, self._ao_nivel_tts)
+            tts.falar_com_niveis(texto, self._ao_nivel_tts, voice=voz, speed=velocidade)
         else:
-            tts.falar(mensagem)
+            tts.falar(texto, voice=voz, speed=velocidade)
 
     def _ao_nivel_tts(self, nivel: float) -> None:
         self._notificar_ouvinte("ao_nivel", nivel)
@@ -141,19 +214,32 @@ class Orquestrador:
 
         self._notificar_ouvinte("ao_transcricao", texto)
 
-        # 3. Wake word
+        # 3. Wake word / Controle de escuta
         self._set_estado(Estado.DETECTANDO_WAKE)
         detectado, comando = wake_word.detectar(texto)
-        if not detectado:
-            logger.debug("Ignorando (sem wake word): %r", texto)
-            self._set_estado(Estado.IDLE)
-            return
+
+        if detectado:
+            # Wake word presente — (re)ativa a janela de 3 minutos
+            self._ativar_escuta()
+            if not comando:
+                # Usuário disse apenas "work" sem comando junto
+                self._set_estado(Estado.IDLE)
+                return
+        else:
+            # Sem wake word — aceita somente se estiver em MODO ATIVO
+            if not self._verificar_janela_ativa():
+                logger.debug("Ignorando (REPOUSO, sem wake word): %r", texto)
+                self._set_estado(Estado.IDLE)
+                return
+            # MODO ATIVO: usa o texto inteiro como comando
+            comando = texto
 
         # 4. Comando de encerramento
         if comando in COMANDO_FECHAR:
             mostrar_status("Encerrando AUTOWORK...")
+            despedida = self._personalidade.despedir()
             self._set_estado(Estado.FALANDO)
-            self._falar_resposta("Encerrando AUTOWORK, senhor.")
+            self._falar_resposta(despedida)
             self._set_estado(Estado.ENCERRANDO)
             self._rodando = False
             return
@@ -171,9 +257,9 @@ class Orquestrador:
 
         # 7. Estado final
         status = resultado.get("status", "")
-        if status == "sucesso":
+        if status == "sucesso" and resultado.get("confirmado") is True:
             self._set_estado(Estado.SUCESSO)
-        elif status == "falha":
+        elif status in STATUS_ERRO:
             self._set_estado(Estado.ERRO)
         self._set_estado(Estado.IDLE)
 
@@ -183,6 +269,24 @@ class Orquestrador:
         Este método pode ser chamado diretamente para testes,
         sem depender de captura de áudio real.
         """
+        with self._lock_processamento:
+            self._personalidade.emocao.transitar(EstadoEmocional.PROCESSANDO)
+            with self._personalidade.feedback.monitorar(self._ao_feedback_espera):
+                resultado = self._executar_processamento(texto)
+
+            status = resultado.get("status", "")
+            if status == "sucesso":
+                self._personalidade.emocao.transitar(EstadoEmocional.SATISFEITO)
+            elif status in STATUS_ERRO:
+                self._personalidade.emocao.transitar(EstadoEmocional.ERRO)
+            elif status == "nao_reconhecido":
+                self._personalidade.emocao.transitar(EstadoEmocional.ALERTA)
+            else:
+                self._personalidade.emocao.transitar(EstadoEmocional.NEUTRO)
+
+            return resultado
+
+    def _executar_processamento(self, texto: str) -> Dict[str, Any]:
         from dispatcher import dispatch
         from interpretador import interpretar
         from sistema_toke.executor import executar
@@ -191,10 +295,22 @@ class Orquestrador:
 
         intencao = interpretar(texto)
         tipo = intencao.get("tipo", "desconhecido")
+        texto_filtrado = intencao.get("texto_filtrado", texto)
+        if texto_filtrado and texto_filtrado != texto:
+            logger.info("Filtro STT: %r → %r", texto, texto_filtrado)
+
+        if tipo == "comando_complexo":
+            from sist_comd_complex.executor_complexo import executar_workflow
+
+            logger.debug("Executando workflow complexo: %s", intencao)
+            self._set_estado(Estado.EXECUTANDO)
+            resultado = executar_workflow(intencao)
+            mostrar_resultado(texto, None, intencao, resultado)
+            return resultado
 
         # Comando específico: o interpretador já passou pelo parser/resolvedor.
         if tipo == "comando":
-            normalizado = normalizar(texto)
+            normalizado = normalizar(texto_filtrado)
             logger.debug("Normalizado: %r", normalizado)
 
             if intencao.get("resolvido") is False:
@@ -226,7 +342,7 @@ class Orquestrador:
             return {
                 "status": "nao_reconhecido",
                 "texto": texto,
-                "mensagem": "Não reconheci esse comando, senhor.",
+                "mensagem": self._personalidade.nao_reconhecido(),
             }
 
         # Clima, hora, apresentação e conversa seguem pelo dispatcher.

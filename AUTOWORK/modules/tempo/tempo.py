@@ -1,7 +1,7 @@
 """Operações de datas e fusos com a base IANA, retornando o padrão de sistema."""
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from modules.localizacao import resolver_localidade, LocalizacaoError
@@ -53,13 +53,20 @@ def consultar_horario(local: str = "Brasil", agora: datetime | None = None) -> d
         tz = loc["timezone"]
         nome = loc["nome"]
         
-        momento = (agora or datetime.now()).astimezone(ZoneInfo(tz))
+        momento_base = agora or datetime.now(timezone.utc)
+        if momento_base.tzinfo is None:
+            # Mantém compatibilidade com testes/consumidores que fornecem um
+            # datetime ingênuo, interpretando-o no fuso local do computador.
+            momento_base = momento_base.astimezone()
+        momento = momento_base.astimezone(ZoneInfo(tz))
+        pais = loc.get("pais", "")
+        referencia = f"{nome}, {pais}" if pais else nome
         
         return {
             "sucesso": True,
             "acao": "consultar_horario",
             "dados": {"horario": momento.isoformat(), "timezone": tz, "local": loc},
-            "mensagem": f"Agora são {momento:%H:%M} em {nome}.",
+            "mensagem": f"Agora são {momento:%H:%M} em {referencia}.",
             "erro": None
         }
     except LocalizacaoError as e:
@@ -69,6 +76,14 @@ def consultar_horario(local: str = "Brasil", agora: datetime | None = None) -> d
             "dados": None,
             "mensagem": str(e),
             "erro": "localidade_invalida"
+        }
+    except ZoneInfoNotFoundError:
+        return {
+            "sucesso": False,
+            "acao": "consultar_horario",
+            "dados": None,
+            "mensagem": "O banco de fusos IANA não está disponível. Instale a dependência tzdata.",
+            "erro": "tzdata_ausente"
         }
     except Exception as e:
         return {

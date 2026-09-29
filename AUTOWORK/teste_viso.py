@@ -1,10 +1,9 @@
+
 import cv2
 import mediapipe as mp
+import numpy as np
 import math
 import time
-import os
-import urllib.request
-import numpy as np
 
 
 # ============================================================
@@ -13,60 +12,590 @@ import numpy as np
 
 CAMERA_INDEX = 0
 
-TEMPO_ATIVACAO = 5.0
+LARGURA = 1280
+ALTURA = 720
 
-# Distância máxima entre polegar e indicador
-PINCH_THRESHOLD = 0.07
+RAIO_INICIAL = 150
+RAIO_MINIMO = 80
+RAIO_MAXIMO = 320
 
-MODEL_PATH = "hand_landmarker.task"
-
-MODEL_URL = (
-    "https://storage.googleapis.com/"
-    "mediapipe-models/hand_landmarker/"
-    "hand_landmarker/float16/1/"
-    "hand_landmarker.task"
-)
+PINCH_THRESHOLD = 0.075
+SUAVIZACAO = 0.18
 
 
 # ============================================================
-# MODELO DO MEDIAPIPE
+# ESFERA AUTOWORK
 # ============================================================
 
-def garantir_modelo():
+class EsferaAutowork:
 
-    if os.path.exists(MODEL_PATH):
-        return
+    def __init__(self, largura, altura):
 
-    print("Modelo do MediaPipe não encontrado.")
-    print("Baixando modelo...")
+        self.largura = largura
+        self.altura = altura
 
-    try:
+        self.x = largura // 2
+        self.y = altura // 2
 
-        urllib.request.urlretrieve(
-            MODEL_URL,
-            MODEL_PATH
+        self.x_alvo = self.x
+        self.y_alvo = self.y
+
+        self.raio = RAIO_INICIAL
+        self.raio_alvo = RAIO_INICIAL
+
+        self.arrastando = False
+
+        self.inicio = time.time()
+
+        self.particulas = []
+
+        for _ in range(70):
+
+            self.particulas.append({
+                "angulo": np.random.uniform(
+                    0,
+                    math.pi * 2
+                ),
+                "distancia": np.random.uniform(
+                    RAIO_INICIAL * 0.9,
+                    RAIO_INICIAL * 1.7
+                ),
+                "velocidade": np.random.uniform(
+                    0.15,
+                    0.5
+                ),
+                "tamanho": np.random.uniform(
+                    1,
+                    3
+                )
+            })
+
+    # ========================================================
+    # MOVER
+    # ========================================================
+
+    def mover(self, x, y):
+
+        self.x_alvo = int(
+            np.clip(
+                x,
+                self.raio,
+                self.largura - self.raio
+            )
         )
 
-        print("Modelo baixado com sucesso.")
+        self.y_alvo = int(
+            np.clip(
+                y,
+                self.raio,
+                self.altura - self.raio
+            )
+        )
 
-    except Exception as erro:
+    # ========================================================
+    # TAMANHO
+    # ========================================================
 
-        print("Erro ao baixar o modelo:")
-        print(erro)
+    def definir_tamanho(self, raio):
 
-        raise
+        self.raio_alvo = int(
+            np.clip(
+                raio,
+                RAIO_MINIMO,
+                RAIO_MAXIMO
+            )
+        )
+
+    # ========================================================
+    # ATUALIZAR
+    # ========================================================
+
+    def atualizar(self):
+
+        self.x += (
+            self.x_alvo - self.x
+        ) * SUAVIZACAO
+
+        self.y += (
+            self.y_alvo - self.y
+        ) * SUAVIZACAO
+
+        self.raio += (
+            self.raio_alvo - self.raio
+        ) * 0.15
+
+    # ========================================================
+    # GLOW
+    # ========================================================
+
+    def desenhar_glow(self, frame):
+
+        centro = (
+            int(self.x),
+            int(self.y)
+        )
+
+        raio = int(self.raio)
+
+        for nivel in range(7, 0, -1):
+
+            camada = frame.copy()
+
+            tamanho = int(
+                raio * (
+                    1.0 +
+                    nivel * 0.08
+                )
+            )
+
+            cv2.circle(
+                camada,
+                centro,
+                tamanho,
+                (255, 90, 20),
+                -1
+            )
+
+            intensidade = (
+                0.012 * nivel
+            )
+
+            frame = cv2.addWeighted(
+                camada,
+                intensidade,
+                frame,
+                1 - intensidade,
+                0
+            )
+
+        return frame
+
+    # ========================================================
+    # ESFERA
+    # ========================================================
+
+    def desenhar_esfera(self, frame):
+
+        altura, largura = frame.shape[:2]
+
+        cx = int(self.x)
+        cy = int(self.y)
+        raio = int(self.raio)
+
+        overlay = frame.copy()
+
+        y_inicio = max(
+            0,
+            cy - raio
+        )
+
+        y_fim = min(
+            altura,
+            cy + raio
+        )
+
+        x_inicio = max(
+            0,
+            cx - raio
+        )
+
+        x_fim = min(
+            largura,
+            cx + raio
+        )
+
+        for y in range(
+            y_inicio,
+            y_fim
+        ):
+
+            dy = y - cy
+
+            for x in range(
+                x_inicio,
+                x_fim
+            ):
+
+                dx = x - cx
+
+                distancia = math.sqrt(
+                    dx * dx +
+                    dy * dy
+                )
+
+                if distancia > raio:
+                    continue
+
+                intensidade = (
+                    1 -
+                    distancia / raio
+                )
+
+                luz = max(
+                    0,
+                    1 -
+                    math.sqrt(
+                        (
+                            dx +
+                            raio * 0.35
+                        ) ** 2 +
+                        (
+                            dy +
+                            raio * 0.35
+                        ) ** 2
+                    ) / (
+                        raio * 1.4
+                    )
+                )
+
+                azul = int(
+                    80 +
+                    170 *
+                    intensidade
+                )
+
+                verde = int(
+                    40 +
+                    100 *
+                    intensidade
+                )
+
+                vermelho = int(
+                    5 +
+                    35 *
+                    intensidade
+                )
+
+                fator = (
+                    0.7 +
+                    luz * 0.5
+                )
+
+                azul = min(
+                    255,
+                    int(azul * fator)
+                )
+
+                verde = min(
+                    255,
+                    int(verde * fator)
+                )
+
+                vermelho = min(
+                    255,
+                    int(vermelho * fator)
+                )
+
+                overlay[y, x] = (
+                    azul,
+                    verde,
+                    vermelho
+                )
+
+        frame = cv2.addWeighted(
+            overlay,
+            0.60,
+            frame,
+            0.40,
+            0
+        )
+
+        return frame
+
+    # ========================================================
+    # ANÉIS
+    # ========================================================
+
+    def desenhar_aneis(self, frame):
+
+        tempo = (
+            time.time() -
+            self.inicio
+        )
+
+        centro = (
+            int(self.x),
+            int(self.y)
+        )
+
+        raio = int(self.raio)
+
+        # Anel horizontal
+
+        cv2.ellipse(
+            frame,
+            centro,
+            (
+                int(raio * 1.30),
+                int(raio * 0.38)
+            ),
+            math.sin(tempo * 0.5) * 20,
+            0,
+            360,
+            (255, 150, 50),
+            2,
+            cv2.LINE_AA
+        )
+
+        # Anel vertical
+
+        cv2.ellipse(
+            frame,
+            centro,
+            (
+                int(raio * 1.05),
+                int(raio * 0.30)
+            ),
+            90 +
+            math.sin(tempo * 0.7) * 25,
+            0,
+            360,
+            (180, 110, 40),
+            1,
+            cv2.LINE_AA
+        )
+
+        # Anel externo
+
+        cv2.ellipse(
+            frame,
+            centro,
+            (
+                int(raio * 1.45),
+                int(raio * 0.20)
+            ),
+            -35 +
+            math.sin(tempo * 0.4) * 20,
+            0,
+            360,
+            (150, 90, 30),
+            1,
+            cv2.LINE_AA
+        )
+
+    # ========================================================
+    # PARTÍCULAS
+    # ========================================================
+
+    def desenhar_particulas(self, frame):
+
+        tempo = (
+            time.time() -
+            self.inicio
+        )
+
+        for particula in self.particulas:
+
+            angulo = (
+                particula["angulo"] +
+                tempo *
+                particula["velocidade"]
+            )
+
+            distancia = (
+                particula["distancia"] +
+                math.sin(
+                    tempo *
+                    particula["velocidade"]
+                ) * 8
+            )
+
+            x = int(
+                self.x +
+                math.cos(angulo) *
+                distancia
+            )
+
+            y = int(
+                self.y +
+                math.sin(angulo) *
+                distancia *
+                0.65
+            )
+
+            if (
+                0 <= x < self.largura
+                and
+                0 <= y < self.altura
+            ):
+
+                cv2.circle(
+                    frame,
+                    (x, y),
+                    int(particula["tamanho"]),
+                    (200, 130, 50),
+                    -1,
+                    cv2.LINE_AA
+                )
+
+    # ========================================================
+    # NÚCLEO
+    # ========================================================
+
+    def desenhar_nucleo(self, frame):
+
+        tempo = (
+            time.time() -
+            self.inicio
+        )
+
+        pulsacao = (
+            math.sin(
+                tempo * 3
+            ) + 1
+        ) / 2
+
+        raio = int(
+            self.raio *
+            (
+                0.10 +
+                pulsacao * 0.025
+            )
+        )
+
+        cv2.circle(
+            frame,
+            (
+                int(self.x),
+                int(self.y)
+            ),
+            raio,
+            (255, 220, 150),
+            -1,
+            cv2.LINE_AA
+        )
+
+        cv2.circle(
+            frame,
+            (
+                int(self.x),
+                int(self.y)
+            ),
+            raio + 5,
+            (180, 130, 60),
+            1,
+            cv2.LINE_AA
+        )
+
+    # ========================================================
+    # TEXTO
+    # ========================================================
+
+    def desenhar_texto(self, frame):
+
+        texto = "AUTOWORK"
+
+        fonte = cv2.FONT_HERSHEY_DUPLEX
+
+        escala = max(
+            0.55,
+            self.raio / 190
+        )
+
+        tamanho = cv2.getTextSize(
+            texto,
+            fonte,
+            escala,
+            1
+        )[0]
+
+        x = int(
+            self.x -
+            tamanho[0] / 2
+        )
+
+        y = int(
+            self.y +
+            tamanho[1] / 2
+        )
+
+        # Sombra
+
+        cv2.putText(
+            frame,
+            texto,
+            (
+                x + 2,
+                y + 2
+            ),
+            fonte,
+            escala,
+            (10, 10, 10),
+            3,
+            cv2.LINE_AA
+        )
+
+        # Texto
+
+        cv2.putText(
+            frame,
+            texto,
+            (x, y),
+            fonte,
+            escala,
+            (220, 200, 160),
+            1,
+            cv2.LINE_AA
+        )
+
+    # ========================================================
+    # DESENHAR
+    # ========================================================
+
+    def desenhar(self, frame):
+
+        self.atualizar()
+
+        frame = self.desenhar_glow(
+            frame
+        )
+
+        frame = self.desenhar_esfera(
+            frame
+        )
+
+        self.desenhar_particulas(
+            frame
+        )
+
+        self.desenhar_aneis(
+            frame
+        )
+
+        self.desenhar_nucleo(
+            frame
+        )
+
+        self.desenhar_texto(
+            frame
+        )
+
+        if self.arrastando:
+
+            cv2.circle(
+                frame,
+                (
+                    int(self.x),
+                    int(self.y)
+                ),
+                int(self.raio * 1.15),
+                (255, 180, 80),
+                2,
+                cv2.LINE_AA
+            )
+
+        return frame
 
 
 # ============================================================
-# DISTÂNCIA ENTRE PONTOS
+# DISTÂNCIA DA MÃO
 # ============================================================
 
 def distancia(a, b):
 
     return math.sqrt(
         (a.x - b.x) ** 2 +
-        (a.y - b.y) ** 2 +
-        (a.z - b.z) ** 2
+        (a.y - b.y) ** 2
     )
 
 
@@ -79,429 +608,27 @@ def detectar_pinca(landmarks):
     polegar = landmarks[4]
     indicador = landmarks[8]
 
-    return distancia(
-        polegar,
-        indicador
-    ) < PINCH_THRESHOLD
-
-
-# ============================================================
-# CONTAR DEDOS
-# ============================================================
-
-def contar_dedos(landmarks):
-
-    dedos = 0
-
-    # Indicador
-    if landmarks[8].y < landmarks[6].y:
-        dedos += 1
-
-    # Médio
-    if landmarks[12].y < landmarks[10].y:
-        dedos += 1
-
-    # Anelar
-    if landmarks[16].y < landmarks[14].y:
-        dedos += 1
-
-    # Mindinho
-    if landmarks[20].y < landmarks[18].y:
-        dedos += 1
-
-    # Polegar
-    if distancia(
-        landmarks[4],
-        landmarks[17]
-    ) > distancia(
-        landmarks[3],
-        landmarks[17]
-    ):
-        dedos += 1
-
-    return dedos
-
-
-# ============================================================
-# DESENHAR MÃO
-# ============================================================
-
-def desenhar_mao(frame, landmarks):
-
-    altura, largura = frame.shape[:2]
-
-    pontos = []
-
-    for ponto in landmarks:
-
-        x = int(ponto.x * largura)
-        y = int(ponto.y * altura)
-
-        pontos.append((x, y))
-
-    # Conexões da mão
-    conexoes = [
-
-        # Polegar
-        (0, 1),
-        (1, 2),
-        (2, 3),
-        (3, 4),
-
-        # Indicador
-        (0, 5),
-        (5, 6),
-        (6, 7),
-        (7, 8),
-
-        # Médio
-        (5, 9),
-        (9, 10),
-        (10, 11),
-        (11, 12),
-
-        # Anelar
-        (9, 13),
-        (13, 14),
-        (14, 15),
-        (15, 16),
-
-        # Mindinho
-        (13, 17),
-        (17, 18),
-        (18, 19),
-        (19, 20),
-
-        # Palma
-        (0, 17)
-    ]
-
-    for a, b in conexoes:
-
-        cv2.line(
-            frame,
-            pontos[a],
-            pontos[b],
-            (255, 255, 255),
-            2
-        )
-
-    # Pontos da mão
-    for i, ponto in enumerate(pontos):
-
-        cv2.circle(
-            frame,
-            ponto,
-            5,
-            (255, 255, 255),
-            -1
-        )
-
-    # Indicador em destaque
-    cv2.circle(
-        frame,
-        pontos[8],
-        10,
-        (0, 255, 0),
-        -1
-    )
-
-    return pontos
-
-
-# ============================================================
-# RECONHECER FORMA
-# ============================================================
-
-def reconhecer_forma(trajetoria):
-
-    if len(trajetoria) < 15:
-        return None, None
-
-    pontos = np.array(
-        trajetoria,
-        dtype=np.float32
-    )
-
-    # --------------------------------------------------------
-    # Suavizar trajetória
-    # --------------------------------------------------------
-
-    if len(pontos) >= 5:
-
-        suavizados = []
-
-        for i in range(len(pontos)):
-
-            inicio = max(0, i - 2)
-            fim = min(
-                len(pontos),
-                i + 3
-            )
-
-            media = np.mean(
-                pontos[inicio:fim],
-                axis=0
-            )
-
-            suavizados.append(media)
-
-        pontos = np.array(
-            suavizados,
-            dtype=np.float32
-        )
-
-    pontos_int = pontos.astype(
-        np.int32
-    )
-
-    # --------------------------------------------------------
-    # Bounding box
-    # --------------------------------------------------------
-
-    x, y, largura, altura = cv2.boundingRect(
-        pontos_int
-    )
-
-    if largura < 20 or altura < 20:
-        return None, None
-
-    proporcao = largura / float(altura)
-
-    # --------------------------------------------------------
-    # Verificar se parece uma linha
-    # --------------------------------------------------------
-
-    distancia_extremos = np.linalg.norm(
-        pontos[0] - pontos[-1]
-    )
-
-    comprimento = cv2.arcLength(
-        pontos.reshape(-1, 1, 2),
-        False
-    )
-
-    if comprimento > 0:
-
-        linearidade = (
-            distancia_extremos /
-            comprimento
-        )
-
-        if linearidade > 0.80:
-
-            return "LINHA", pontos_int
-
-    # --------------------------------------------------------
-    # Contorno
-    # --------------------------------------------------------
-
-    contorno = pontos_int.reshape(
-        -1,
-        1,
-        2
-    )
-
-    perimetro = cv2.arcLength(
-        contorno,
-        True
-    )
-
-    if perimetro == 0:
-        return None, None
-
-    epsilon = 0.04 * perimetro
-
-    aproximado = cv2.approxPolyDP(
-        contorno,
-        epsilon,
-        True
-    )
-
-    vertices = len(aproximado)
-
-    # --------------------------------------------------------
-    # TRIÂNGULO
-    # --------------------------------------------------------
-
-    if vertices == 3:
-
-        return (
-            "TRIÂNGULO",
-            aproximado
-        )
-
-    # --------------------------------------------------------
-    # QUADRADO / RETÂNGULO
-    # --------------------------------------------------------
-
-    if vertices == 4:
-
-        if 0.85 <= proporcao <= 1.15:
-
-            return (
-                "QUADRADO",
-                aproximado
-            )
-
-        return (
-            "RETÂNGULO",
-            aproximado
-        )
-
-    # --------------------------------------------------------
-    # CÍRCULO
-    # --------------------------------------------------------
-
-    area = cv2.contourArea(
-        contorno
-    )
-
-    if area > 0:
-
-        circularidade = (
-            4 *
-            math.pi *
-            area
-        ) / (
-            perimetro ** 2
-        )
-
-        if circularidade > 0.70:
-
-            return (
-                "CÍRCULO",
-                contorno
-            )
-
-    # --------------------------------------------------------
-    # FORMA DESCONHECIDA
-    # --------------------------------------------------------
-
     return (
-        "FORMA",
-        aproximado
+        distancia(
+            polegar,
+            indicador
+        )
+        <
+        PINCH_THRESHOLD
     )
 
 
 # ============================================================
-# DESENHAR FORMA
+# CRIAR MEDIAPIPE
 # ============================================================
 
-def desenhar_forma(
-    frame,
-    tipo,
-    pontos
-):
+def criar_detector():
 
-    if pontos is None:
-        return frame
-
-    overlay = frame.copy()
-
-    pontos = pontos.reshape(
-        -1,
-        2
-    ).astype(np.int32)
-
-    # --------------------------------------------------------
-    # LINHA
-    # --------------------------------------------------------
-
-    if tipo == "LINHA":
-
-        if len(pontos) >= 2:
-
-            cv2.line(
-                frame,
-                tuple(pontos[0]),
-                tuple(pontos[-1]),
-                (255, 100, 0),
-                4
-            )
-
-        return frame
-
-    # --------------------------------------------------------
-    # CÍRCULO
-    # --------------------------------------------------------
-
-    if tipo == "CÍRCULO":
-
-        (cx, cy), raio = cv2.minEnclosingCircle(
-            pontos
-        )
-
-        centro = (
-            int(cx),
-            int(cy)
-        )
-
-        raio = int(raio)
-
-        cv2.circle(
-            overlay,
-            centro,
-            raio,
-            (255, 100, 0),
-            -1
-        )
-
-        cv2.circle(
-            frame,
-            centro,
-            raio,
-            (255, 100, 0),
-            3
-        )
-
-    # --------------------------------------------------------
-    # OUTRAS FORMAS
-    # --------------------------------------------------------
-
-    else:
-
-        cv2.fillPoly(
-            overlay,
-            [pontos],
-            (255, 100, 0)
-        )
-
-        cv2.polylines(
-            frame,
-            [pontos],
-            True,
-            (255, 100, 0),
-            3
-        )
-
-    # Transparência
-    frame[:] = cv2.addWeighted(
-        overlay,
-        0.35,
-        frame,
-        0.65,
-        0
+    BaseOptions = (
+        mp.tasks.BaseOptions
     )
 
-    return frame
-
-
-# ============================================================
-# PROGRAMA PRINCIPAL
-# ============================================================
-
-def main():
-
-    garantir_modelo()
-
-    # ========================================================
-    # API NOVA DO MEDIAPIPE
-    # ========================================================
-
-    BaseOptions = mp.tasks.BaseOptions
-
-    VisionRunningMode = (
+    RunningMode = (
         mp.tasks.vision.RunningMode
     )
 
@@ -516,12 +643,13 @@ def main():
     options = HandLandmarkerOptions(
 
         base_options=BaseOptions(
-            model_asset_path=MODEL_PATH
+            model_asset_path=
+            "hand_landmarker.task"
         ),
 
-        running_mode=VisionRunningMode.VIDEO,
+        running_mode=RunningMode.VIDEO,
 
-        num_hands=2,
+        num_hands=1,
 
         min_hand_detection_confidence=0.6,
 
@@ -530,9 +658,16 @@ def main():
         min_tracking_confidence=0.6
     )
 
-    # ========================================================
-    # CÂMERA
-    # ========================================================
+    return HandLandmarker.create_from_options(
+        options
+    )
+
+
+# ============================================================
+# PROGRAMA PRINCIPAL
+# ============================================================
+
+def main():
 
     camera = cv2.VideoCapture(
         CAMERA_INDEX
@@ -540,409 +675,342 @@ def main():
 
     if not camera.isOpened():
 
-        print("ERRO: não foi possível abrir a câmera.")
+        print(
+            "ERRO: câmera não encontrada."
+        )
 
         return
 
     camera.set(
         cv2.CAP_PROP_FRAME_WIDTH,
-        1280
+        LARGURA
     )
 
     camera.set(
         cv2.CAP_PROP_FRAME_HEIGHT,
-        720
+        ALTURA
     )
 
-    # ========================================================
-    # ESTADOS
-    # ========================================================
+    janela = (
+        "AUTOWORK - VISION"
+    )
 
-    ativado = False
+    cv2.namedWindow(
+        janela,
+        cv2.WINDOW_NORMAL
+    )
 
-    inicio_ativacao = None
+    # Tela cheia
 
-    trajetoria = []
+    cv2.setWindowProperty(
+        janela,
+        cv2.WND_PROP_FULLSCREEN,
+        cv2.WINDOW_FULLSCREEN
+    )
 
-    desenhando = False
-
-    formas = []
+    esfera = EsferaAutowork(
+        LARGURA,
+        ALTURA
+    )
 
     timestamp = 0
 
+    pinça_anterior = False
+
+    distancia_inicial = None
+    raio_inicial = None
+
     print()
     print("=" * 60)
-    print("AUTOWORK - VISÃO COMPUTACIONAL")
+    print("AUTOWORK VISION")
     print("=" * 60)
     print()
-    print("1. Coloque sua mão na frente da câmera.")
-    print("2. Aguarde 5 segundos.")
-    print("3. Use o indicador para desenhar.")
-    print("4. Faça uma pinça para confirmar.")
-    print()
-    print("R = limpar formas")
-    print("Q / ESC = sair")
+    print("🤏 Pinça + movimento = mover")
+    print("🤏 Aproximar/afastar = tamanho")
+    print("R = restaurar")
+    print("ESC = sair")
     print()
 
-    # ========================================================
-    # MEDIAPIPE
-    # ========================================================
-
-    with HandLandmarker.create_from_options(
-        options
-    ) as detector:
+    with criar_detector() as detector:
 
         while True:
 
-            sucesso, frame = camera.read()
+            sucesso, frame = (
+                camera.read()
+            )
 
             if not sucesso:
                 break
 
-            # Espelhar câmera
             frame = cv2.flip(
                 frame,
                 1
             )
 
-            altura, largura = frame.shape[:2]
+            altura, largura = (
+                frame.shape[:2]
+            )
 
-            # =================================================
-            # CONVERTER PARA RGB
-            # =================================================
+            # ------------------------------------------------
+            # MediaPipe
+            # ------------------------------------------------
 
             rgb = cv2.cvtColor(
                 frame,
                 cv2.COLOR_BGR2RGB
             )
 
-            imagem_mp = mp.Image(
-                image_format=mp.ImageFormat.SRGB,
+            imagem = mp.Image(
+                image_format=
+                mp.ImageFormat.SRGB,
                 data=rgb
             )
 
             timestamp += 33
 
-            resultado = detector.detect_for_video(
-                imagem_mp,
-                timestamp
+            resultado = (
+                detector.detect_for_video(
+                    imagem,
+                    timestamp
+                )
             )
 
-            maos = resultado.hand_landmarks
-
-            mao_detectada = len(maos) > 0
+            maos = (
+                resultado.hand_landmarks
+            )
 
             # =================================================
-            # ATIVAÇÃO
+            # MÃO DETECTADA
             # =================================================
 
-            if not ativado:
+            if maos:
 
-                if mao_detectada:
+                landmarks = maos[0]
 
-                    if inicio_ativacao is None:
+                indicador = landmarks[8]
 
-                        inicio_ativacao = time.time()
+                pinca = detectar_pinca(
+                    landmarks
+                )
 
-                    tempo = (
-                        time.time()
-                        - inicio_ativacao
-                    )
+                indicador_x = int(
+                    indicador.x *
+                    largura
+                )
 
-                    progresso = min(
-                        tempo /
-                        TEMPO_ATIVACAO,
-                        1.0
-                    )
+                indicador_y = int(
+                    indicador.y *
+                    altura
+                )
 
-                    percentual = int(
-                        progresso * 100
-                    )
+                # ------------------------------------------------
+                # Pinça
+                # ------------------------------------------------
 
-                    cv2.putText(
-                        frame,
-                        "ATIVANDO AUTOWORK",
-                        (40, 60),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        1.0,
-                        (255, 255, 255),
-                        2
-                    )
+                if pinca:
 
-                    cv2.putText(
-                        frame,
-                        f"{percentual}%",
-                        (40, 110),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        0.9,
-                        (255, 255, 255),
-                        2
-                    )
+                    esfera.arrastando = True
 
-                    # Barra
-                    cv2.rectangle(
-                        frame,
-                        (40, 135),
-                        (340, 160),
-                        (80, 80, 80),
-                        -1
-                    )
+                    # Primeiro frame da pinça
 
-                    cv2.rectangle(
-                        frame,
-                        (40, 135),
-                        (
-                            40 +
-                            int(300 * progresso),
-                            160
-                        ),
-                        (255, 100, 0),
-                        -1
-                    )
+                    if not pinça_anterior:
 
-                    if tempo >= TEMPO_ATIVACAO:
-
-                        ativado = True
-
-                        inicio_ativacao = None
-
-                        print(
-                            "AUTOWORK VISÃO: ATIVADO"
+                        distancia_inicial = (
+                            distancia(
+                                landmarks[4],
+                                landmarks[8]
+                            )
                         )
+
+                        raio_inicial = (
+                            esfera.raio
+                        )
+
+                    # ------------------------------------------------
+                    # MOVER ESFERA
+                    # ------------------------------------------------
+
+                    esfera.mover(
+                        indicador_x,
+                        indicador_y
+                    )
+
+                    # ------------------------------------------------
+                    # ALTERAR TAMANHO
+                    # ------------------------------------------------
+
+                    distancia_atual = (
+                        distancia(
+                            landmarks[4],
+                            landmarks[8]
+                        )
+                    )
+
+                    if distancia_inicial:
+
+                        diferenca = (
+                            distancia_atual -
+                            distancia_inicial
+                        )
+
+                        novo_raio = (
+                            raio_inicial +
+                            diferenca * 1800
+                        )
+
+                        esfera.definir_tamanho(
+                            novo_raio
+                        )
+
+                    # ------------------------------------------------
+                    # Linha entre polegar e indicador
+                    # ------------------------------------------------
+
+                    polegar = landmarks[4]
+
+                    polegar_x = int(
+                        polegar.x *
+                        largura
+                    )
+
+                    polegar_y = int(
+                        polegar.y *
+                        altura
+                    )
+
+                    cv2.line(
+                        frame,
+                        (
+                            polegar_x,
+                            polegar_y
+                        ),
+                        (
+                            indicador_x,
+                            indicador_y
+                        ),
+                        (255, 200, 100),
+                        3,
+                        cv2.LINE_AA
+                    )
 
                 else:
 
-                    inicio_ativacao = None
+                    esfera.arrastando = False
 
-                    cv2.putText(
-                        frame,
-                        "MOSTRE SUA MAO",
-                        (40, 60),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        1.0,
-                        (255, 255, 255),
-                        2
-                    )
+                    distancia_inicial = None
+                    raio_inicial = None
 
-            # =================================================
-            # SISTEMA ATIVADO
-            # =================================================
+                pinça_anterior = pinca
 
             else:
 
-                cv2.putText(
-                    frame,
-                    "AUTOWORK: ATIVO",
-                    (40, 45),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.8,
-                    (255, 255, 255),
-                    2
-                )
+                esfera.arrastando = False
 
-                # ------------------------------------------------
-                # PROCESSAR MÃOS
-                # ------------------------------------------------
+                pinça_anterior = False
 
-                for indice_mao, landmarks in enumerate(maos):
-
-                    pontos = desenhar_mao(
-                        frame,
-                        landmarks
-                    )
-
-                    dedos = contar_dedos(
-                        landmarks
-                    )
-
-                    pinca = detectar_pinca(
-                        landmarks
-                    )
-
-                    # ------------------------------------------------
-                    # INFORMAÇÕES
-                    # ------------------------------------------------
-
-                    cv2.putText(
-                        frame,
-                        f"MAO {indice_mao + 1}",
-                        (40, 90 + indice_mao * 100),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        0.7,
-                        (255, 255, 255),
-                        2
-                    )
-
-                    cv2.putText(
-                        frame,
-                        f"DEDOS: {dedos}",
-                        (40, 120 + indice_mao * 100),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        0.7,
-                        (255, 255, 255),
-                        2
-                    )
-
-                    # ------------------------------------------------
-                    # PINÇA
-                    # ------------------------------------------------
-
-                    if pinca:
-
-                        cv2.line(
-                            frame,
-                            pontos[4],
-                            pontos[8],
-                            (0, 255, 255),
-                            3
-                        )
-
-                        cv2.putText(
-                            frame,
-                            "PINCA - CONFIRMAR",
-                            (40, 150 + indice_mao * 100),
-                            cv2.FONT_HERSHEY_SIMPLEX,
-                            0.65,
-                            (0, 255, 255),
-                            2
-                        )
-
-                    # ------------------------------------------------
-                    # DESENHO
-                    # ------------------------------------------------
-
-                    indicador = pontos[8]
-
-                    if not pinca:
-
-                        if not desenhando:
-
-                            trajetoria = []
-
-                            desenhando = True
-
-                        trajetoria.append(
-                            indicador
-                        )
-
-                    else:
-
-                        if desenhando:
-
-                            desenhando = False
-
-                            tipo, pontos_forma = reconhecer_forma(
-                                trajetoria
-                            )
-
-                            if tipo is not None:
-
-                                formas.append(
-                                    (
-                                        tipo,
-                                        pontos_forma.copy()
-                                    )
-                                )
-
-                                print(
-                                    f"Forma reconhecida: {tipo}"
-                                )
-
-                            trajetoria = []
-
-                # =================================================
-                # DESENHAR TRAJETÓRIA
-                # =================================================
-
-                if len(trajetoria) > 1:
-
-                    pontos_trajetoria = np.array(
-                        trajetoria,
-                        dtype=np.int32
-                    )
-
-                    cv2.polylines(
-                        frame,
-                        [pontos_trajetoria],
-                        False,
-                        (255, 100, 0),
-                        3
-                    )
-
-                # =================================================
-                # DESENHAR FORMAS CONFIRMADAS
-                # =================================================
-
-                for tipo, pontos_forma in formas:
-
-                    desenhar_forma(
-                        frame,
-                        tipo,
-                        pontos_forma
-                    )
-
-                # =================================================
-                # MOSTRAR ÚLTIMA FORMA
-                # =================================================
-
-                if formas:
-
-                    ultima_forma = formas[-1][0]
-
-                    cv2.putText(
-                        frame,
-                        f"FORMA: {ultima_forma}",
-                        (40, altura - 30),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        0.8,
-                        (255, 255, 255),
-                        2
-                    )
+                distancia_inicial = None
+                raio_inicial = None
 
             # =================================================
-            # MOSTRAR CÂMERA
+            # ESFERA
             # =================================================
 
-            cv2.imshow(
-                "AUTOWORK - Visao",
+            frame = esfera.desenhar(
                 frame
             )
 
-            tecla = cv2.waitKey(1) & 0xFF
+            # =================================================
+            # INFORMAÇÃO
+            # =================================================
 
-            # Limpar
-            if tecla == ord("r"):
+            cv2.putText(
+                frame,
+                "AUTOWORK VISION",
+                (30, 45),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.7,
+                (190, 160, 110),
+                1,
+                cv2.LINE_AA
+            )
 
-                trajetoria = []
+            if esfera.arrastando:
 
-                formas = []
-
-                desenhando = False
-
-                print(
-                    "Formas apagadas."
+                cv2.putText(
+                    frame,
+                    "CONTROLE ATIVO",
+                    (30, 80),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.6,
+                    (220, 190, 130),
+                    1,
+                    cv2.LINE_AA
                 )
 
-            # Sair
-            if tecla == ord("q") or tecla == 27:
+            # =================================================
+            # MOSTRAR
+            # =================================================
 
+            cv2.imshow(
+                janela,
+                frame
+            )
+
+            tecla = (
+                cv2.waitKey(1) &
+                0xFF
+            )
+
+            # =================================================
+            # RESTAURAR
+            # =================================================
+
+            if tecla == ord("r"):
+
+                esfera.x = (
+                    largura // 2
+                )
+
+                esfera.y = (
+                    altura // 2
+                )
+
+                esfera.x_alvo = (
+                    largura // 2
+                )
+
+                esfera.y_alvo = (
+                    altura // 2
+                )
+
+                esfera.raio = (
+                    RAIO_INICIAL
+                )
+
+                esfera.raio_alvo = (
+                    RAIO_INICIAL
+                )
+
+            # =================================================
+            # SAIR
+            # =================================================
+
+            if tecla == 27:
                 break
-
-    # ========================================================
-    # FINALIZAR
-    # ========================================================
 
     camera.release()
 
     cv2.destroyAllWindows()
 
-    print()
-    print("AUTOWORK Visão encerrado.")
+    print(
+        "AUTOWORK Vision encerrado."
+    )
 
 
 # ============================================================
-# EXECUÇÃO
+# EXECUTAR
 # ============================================================
 
 if __name__ == "__main__":
     main()
+

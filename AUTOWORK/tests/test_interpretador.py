@@ -22,6 +22,11 @@ class TestRoteamento(unittest.TestCase):
         casos = {
             "abrir o Chrome": "abrir_app",
             "abra o bloco de notas": "abrir_app",
+            "Work, eu preciso abrir o Codex": "abrir_app",
+            "Work, por favor, abra o Codex": "abrir_app",
+            "Work, pode abrir o Codex para mim?": "abrir_app",
+            "Work, você pode abrir o Codex?": "abrir_app",
+            "Work, consegue abrir o Codex?": "abrir_app",
             "abrir nova aba": "nova_aba",
             "por favor abra o chrome": "abrir_app",
             "fechar a janela": "fechar_janela",
@@ -39,6 +44,15 @@ class TestRoteamento(unittest.TestCase):
         tipo, acao = self._tipo_acao("você sabe como abrir o chrome?")
         self.assertEqual(tipo, "conversa")
         self.assertEqual(acao, "chat")
+
+    def test_work_nao_transforma_pergunta_em_comando(self):
+        tipo, acao = self._tipo_acao("Work, o que é Python?")
+        self.assertEqual(tipo, "conversa")
+        self.assertEqual(acao, "chat")
+
+    def test_work_comando_composto(self):
+        intencao = interpretar("Work, abra o Chrome e depois abra o VS Code.")
+        self.assertEqual(intencao["tipo"], "comando_complexo")
 
     def test_hora(self):
         casos = {

@@ -14,6 +14,15 @@ import logging
 import sys
 from typing import Any, Dict
 
+if sys.platform == "win32":
+    try:
+        if hasattr(sys.stdout, "reconfigure"):
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        if hasattr(sys.stderr, "reconfigure"):
+            sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 from core.estados import Estado
 
 logger = logging.getLogger("auto")
@@ -116,9 +125,68 @@ def _executar_texto_unico(texto: str) -> None:
 
 def _executar_com_interface(orquestrador, ponte: PonteInterface) -> None:
     """Roda o pipeline em thread própria com a interface na thread principal."""
+    import threading
+    from core.orquestrador import COMANDO_FECHAR, Orquestrador
+    from entrada_texto import validar_texto
     from interface.hud import HUD
 
-    interface = HUD()
+    def ao_enviar_texto(texto_bruto: str) -> None:
+        texto = validar_texto(texto_bruto)
+        if not texto:
+            return
+
+        def processar_em_thread() -> None:
+            # 1. Registra no histórico visual
+            ponte.ao_transcricao(texto)
+            ponte.ao_estado(Estado.PROCESSANDO)
+
+            # 2. Comando de encerramento
+            if texto.lower() in COMANDO_FECHAR or texto.lower() == "sair":
+                despedida = orquestrador.personalidade.despedir()
+                ponte.ao_resposta({"mensagem": despedida})
+                ponte.ao_estado(Estado.FALANDO)
+                from audio.tts import falar
+                falar(despedida)
+                ponte.ao_estado(Estado.ENCERRANDO)
+                interface.encerrar()
+                return
+
+            # 3. Processamento pelo fluxo oficial existente
+            try:
+                resultado = orquestrador.processar_comando(texto)
+            except Exception as exc:
+                logger.exception("Erro ao processar comando de texto: %s", exc)
+                resultado = {
+                    "status": "erro_excecao",
+                    "mensagem": f"Erro interno: {exc}",
+                }
+
+            # 4. Atualiza a interface com a resposta
+            ponte.ao_resposta(resultado)
+
+            # 5. Fala resposta se a política do assistente indicar
+            if Orquestrador._deve_falar(resultado):
+                mensagem = resultado.get("mensagem", "")
+                if mensagem:
+                    ponte.ao_estado(Estado.FALANDO)
+                    from audio.tts import falar
+                    falar(mensagem)
+
+            # 6. Restaura estado final
+            status = resultado.get("status", "")
+            if status == "sucesso" and resultado.get("confirmado") is True:
+                ponte.ao_estado(Estado.SUCESSO)
+            elif status in ("falha", "nao_confirmado", "acao_nao_encontrada", "contrato_invalido", "erro_excecao"):
+                ponte.ao_estado(Estado.ERRO)
+            ponte.ao_estado(Estado.IDLE)
+
+        threading.Thread(
+            target=processar_em_thread,
+            name="autowork-entrada-texto",
+            daemon=True,
+        ).start()
+
+    interface = HUD(on_enviar_texto=ao_enviar_texto)
     ponte.definir_interface(interface)
 
     def trabalho() -> None:
@@ -165,17 +233,50 @@ class _InterfaceNula:
         pass
 
 
+def _executar_texto_continuo_terminal(orquestrador, ponte: PonteInterface) -> None:
+    """Loop contínuo de digitação de comandos pelo terminal."""
+    from entrada_texto import EntradaTexto
+    from core.orquestrador import COMANDO_FECHAR, Orquestrador
+    from audio.tts import falar
+    from interface.terminal import mostrar_banner, mostrar_status
+
+    mostrar_banner()
+    saudacao = orquestrador.personalidade.saudar()
+    mostrar_status(f"{saudacao} Modo texto ativo. Digite seus comandos (ou 'sair'/'fechar' para encerrar).")
+
+    leitor = EntradaTexto()
+    for texto in leitor.receber_continuamente():
+        if texto.lower() in COMANDO_FECHAR or texto.lower() == "sair":
+            despedida = orquestrador.personalidade.despedir()
+            mostrar_status(despedida)
+            falar(despedida)
+            break
+
+        resultado = orquestrador.processar_comando(texto)
+        if Orquestrador._deve_falar(resultado):
+            mensagem = resultado.get("mensagem", "")
+            if mensagem:
+                falar(mensagem)
+
+
 def _analisar_argumentos(argv=None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="AUTOWORK — assistente de voz")
+    parser = argparse.ArgumentParser(description="AUTOWORK — assistente de voz e texto")
     parser.add_argument(
         "--texto",
+        nargs="?",
+        const="",
         metavar="FRASE",
-        help="processa uma frase em texto, sem microfone nem interface",
+        help="processa uma frase em texto ou inicia o modo de texto contínuo no terminal",
+    )
+    parser.add_argument(
+        "--modo-texto",
+        action="store_true",
+        help="roda o assistente em modo de digitação contínua pelo terminal",
     )
     parser.add_argument(
         "--terminal",
         action="store_true",
-        help="roda o loop no terminal, sem a interface HUD",
+        help="roda o loop de voz no terminal, sem a interface HUD",
     )
     parser.add_argument("--debug", action="store_true", help="logging detalhado")
     return parser.parse_args(argv)
@@ -185,8 +286,14 @@ def main(argv=None) -> None:
     args = _analisar_argumentos(argv)
     _configurar_logging(args.debug)
 
-    if args.texto:
-        _executar_texto_unico(args.texto)
+    if args.texto is not None or args.modo_texto:
+        frase = (args.texto or "").strip()
+        if frase:
+            _executar_texto_unico(frase)
+            return
+        ponte = PonteInterface(_InterfaceNula())
+        orquestrador = _construir_orquestrador(ponte)
+        _executar_texto_continuo_terminal(orquestrador, ponte)
         return
 
     ponte = PonteInterface(_InterfaceNula())

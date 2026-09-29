@@ -99,6 +99,7 @@ class Chatbot:
         Devolve {"tipo", "mensagem", "sucesso"} sem tocar o áudio; a
         política de voz (terminal + TTS) fica centralizada no fala.py.
         """
+        
         conteudo = self.enviar(mensagem)
         return {
             "tipo": "conversa",

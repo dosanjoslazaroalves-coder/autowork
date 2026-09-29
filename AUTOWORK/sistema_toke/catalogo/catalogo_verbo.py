@@ -4,7 +4,9 @@ VERBOS_ABRIR: Set[str] = frozenset({
     "abrir", "abra", "abre", "abrindo",
     "executar", "execute", "executa",
     "iniciar", "inicie", "inicia",
-    "rodar", "rode",
+    "rodar", "rode", "roda",
+    "lançar", "lancar", "lanca", "lance",
+    "chamar", "chama", "chame",
 })
 
 VERBOS_ABRIR_SITE: Set[str] = frozenset({
@@ -12,6 +14,8 @@ VERBOS_ABRIR_SITE: Set[str] = frozenset({
     "executar site", "execute site", "executa site",
     "iniciar site", "inicie site", "inicia site",
     "rodar site", "rode site",
+    "acessar", "acessa", "acesse",
+    "entrar", "entra", "entre",
 })
 
 VERBO_ABRIR_SITE_CANONICO = "abrir site"
@@ -31,6 +35,8 @@ VERBOS_ALTERNAR: Set[str] = frozenset({
 VERBOS_MOSTRAR: Set[str] = frozenset({
     "mostrar", "mostra", "mostre",
     "exibir", "exibe", "exiba",
+    "ver",
+    "expor", "expoe", "exponha",
 })
 
 VERBOS_MAXIMIZAR: Set[str] = frozenset({
@@ -41,6 +47,7 @@ VERBOS_MAXIMIZAR: Set[str] = frozenset({
 VERBOS_RESTAURAR: Set[str] = frozenset({
     "restaurar", "restaura", "restaure",
     "minimizar", "minimiza", "minimize",
+    "esconder", "esconde", "esconda",
 })
 
 VERBOS_ENCAIXAR: Set[str] = frozenset({
@@ -73,11 +80,16 @@ VERBOS_VOLTAR: Set[str] = frozenset({
 
 VERBOS_AVANCAR: Set[str] = frozenset({
     "avancar", "avanca", "avance",
+    "avançar", "avança",
 })
 
 VERBOS_BUSCAR: Set[str] = frozenset({
     "buscar", "busca", "busque",
     "pesquisar", "pesquisa", "pesquise",
+    "localizar", "localiza", "localize",
+    "procurar", "procura", "procure",
+    "achar", "acha", "ache",
+    "encontrar", "encontra", "encontre",
 })
 
 VERBOS_SALVAR: Set[str] = frozenset({
@@ -108,13 +120,20 @@ VERBOS_ZOOM: Set[str] = frozenset({
 VERBOS_DEVTOOLS: Set[str] = frozenset({
     "inspecionar", "inspeciona", "inspecione",
     "depurar", "depura", "depure",
+    "debugar", "debuga", "debugue",
 })
 
 MAPA_VERBOS: Dict[str, str] = {
     "abrir": "abrir", "abra": "abrir", "abre": "abrir", "abrindo": "abrir",
+    "abrir site": "abrir site", "abra site": "abrir site", "abre site": "abrir site",
+    "acessar": "abrir", "acessa": "abrir", "acesse": "abrir",
+    "entrar": "abrir", "entra": "abrir", "entre": "abrir",
     "executar": "abrir", "execute": "abrir", "executa": "abrir",
     "iniciar": "abrir", "inicie": "abrir", "inicia": "abrir",
-    "rodar": "abrir", "rode": "abrir",
+    "rodar": "abrir", "rode": "abrir", "roda": "abrir",
+    "lancar": "abrir", "lanca": "abrir", "lance": "abrir",
+    "lançar": "abrir",
+    "chamar": "abrir", "chama": "abrir", "chame": "abrir",
     "fechar": "fechar", "fecha": "fechar", "feche": "fechar",
     "encerrar": "encerrar", "encerra": "encerrar", "encerre": "encerrar",
     "sair": "sair", "sai": "sair",
@@ -123,10 +142,13 @@ MAPA_VERBOS: Dict[str, str] = {
     "mudar": "mudar", "muda": "mudar", "mude": "mudar",
     "mostrar": "mostrar", "mostra": "mostrar", "mostre": "mostrar",
     "exibir": "exibir", "exibe": "exibir", "exiba": "exibir",
+    "ver": "mostrar",
+    "expor": "mostrar", "expoe": "mostrar", "exponha": "mostrar",
     "maximizar": "maximizar", "maximiza": "maximizar", "maximize": "maximizar",
     "ampliar": "ampliar", "amplia": "ampliar", "amplie": "ampliar",
     "restaurar": "restaurar", "restaura": "restaurar", "restaure": "restaurar",
     "minimizar": "minimizar", "minimiza": "minimizar", "minimize": "minimizar",
+    "esconder": "minimizar", "esconde": "minimizar", "esconda": "minimizar",
     "encaixar": "encaixar", "encaixa": "encaixar", "encaixe": "encaixar",
     "bloquear": "bloquear", "bloqueia": "bloquear", "bloqueie": "bloquear",
     "travar": "travar", "trava": "travar", "trave": "travar",
@@ -138,18 +160,24 @@ MAPA_VERBOS: Dict[str, str] = {
     "voltar": "voltar", "volta": "voltar", "volte": "voltar",
     "retornar": "voltar", "retorna": "voltar", "retorne": "voltar",
     "avancar": "avancar", "avanca": "avancar", "avance": "avancar",
+    "avançar": "avancar", "avança": "avancar",
     "buscar": "buscar", "busca": "buscar", "busque": "buscar",
     "pesquisar": "buscar", "pesquisa": "buscar", "pesquise": "buscar",
+    "localizar": "buscar", "localiza": "buscar", "localize": "buscar",
+    "procurar": "buscar", "procura": "buscar", "procure": "buscar",
+    "achar": "buscar", "acha": "buscar", "ache": "buscar",
+    "encontrar": "buscar", "encontra": "buscar", "encontre": "buscar",
     "salvar": "salvar", "salva": "salvar", "salve": "salvar",
     "imprimir": "imprimir", "imprime": "imprimir", "imprima": "imprimir",
     "aumentar": "aumentar", "aumenta": "aumentar", "aumente": "aumentar",
     "diminuir": "diminuir", "diminui": "diminuir", "diminua": "diminuir",
     "reduzir": "diminuir", "reduz": "diminuir", "reduza": "diminuir",
     "depurar": "depurar", "depura": "depurar", "depure": "depurar",
+    "debugar": "depurar", "debuga": "depurar", "debugue": "depurar",
+    "inspecionar": "inspecionar", "inspeciona": "inspecionar", "inspecione": "inspecionar",
+    "forcar": "forcar", "forca": "forcar", "force": "forcar",
+    "forçar": "forcar", "força": "forcar",
 }
-
-for _variante_abrir_site in VERBOS_ABRIR_SITE:
-    MAPA_VERBOS[_variante_abrir_site] = VERBO_ABRIR_SITE_CANONICO
 
 VERBOS_POR_ACAO: Dict[str, Set[str]] = {
     "abrir_app": VERBOS_ABRIR,
@@ -164,16 +192,23 @@ VERBOS_POR_ACAO: Dict[str, Set[str]] = {
     "bloquear_tela": VERBOS_BLOQUEAR,
 }
 
+# Palavras que não entram no objeto e também podem prefixar um comando
+# ("quero abrir", "me mostra"). Não incluir "sabe": "você sabe abrir..."
+# deve continuar como conversa, não como comando.
 PALAVRAS_DESCARTE: Set[str] = frozenset({
     "","o", "a", "os", "as", "um", "uma", "uns", "umas",
     "de", "da", "do", "das", "dos", "em", "no", "na", "nos", "nas",
-    "para", "pra", "por", "per", "com", "sem", "sob", "sobre",
-    "entre", "apos", "ate", "ate", "mim", "me", "te", "se", "si",
-    "voce", "voces", "ele", "ela", "eles", "elas", "lhe", "lhes",
+    "para", "pra", "pro", "por", "per", "com", "sem", "sob", "sobre",
+    "entre", "apos", "ate", "até", "mim", "me", "te", "se", "si",
+    "voce", "você", "voces", "vocês", "vc", "ele", "ela", "eles", "elas", "lhe", "lhes",
     "meu", "meus", "minha", "minhas", "teu", "teus", "tua", "tuas",
     "seu", "seus", "sua", "suas", "nosso", "nossa", "nossos", "nossas",
-    "favor", "consegue", "conseguir", "pode", "poder",
-    "quero", "quer", "querer", "preciso", "precisa", "precisar",
-    "gostaria", "gostar", "seria", "sao", "e", "esta", "poderia",
+    "esse", "essa", "esses", "essas", "este", "esta", "estes", "estas",
+    "aquele", "aquela", "aqueles", "aquelas",
+    "ai", "aí", "la", "lá", "ali", "aqui",
+    "favor", "consegue", "conseguir", "pode", "poder", "podia", "poderia",
+    "quero", "quer", "querer", "queria", "preciso", "precisa", "precisar",
+    "gostaria", "gostar", "seria", "sao", "são", "e", "é", "esta", "está",
     "qual", "quais", "que", "como", "quando", "onde", "hoje", "agora",
+    "so", "só", "bem", "dai", "daí",
 })

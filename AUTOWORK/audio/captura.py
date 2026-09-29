@@ -94,7 +94,7 @@ class ServicoCaptura:
 
     def __init__(
         self,
-        energy_threshold: int = 300,
+        energy_threshold: int = 200,
         dynamic_energy_threshold: bool = True,
         dynamic_energy_adjustment_damping: float = 0.12,
         dynamic_energy_ratio: float = 1.3,
@@ -103,7 +103,7 @@ class ServicoCaptura:
         non_speaking_duration: float = 0.3,
         operation_timeout: Optional[float] = 8.0,
         listen_timeout: Optional[float] = None,
-        phrase_time_limit: Optional[float] = 10.0,
+        phrase_time_limit: Optional[float] = 90.0,
     ) -> None:
         if non_speaking_duration > pause_threshold:
             raise ValueError(

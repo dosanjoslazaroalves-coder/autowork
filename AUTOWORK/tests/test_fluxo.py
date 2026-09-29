@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 from interpretador import interpretar
 from dispatcher import dispatch
 
@@ -36,6 +37,23 @@ class TestFluxo(unittest.TestCase):
         
         resultado = dispatch(intencao)
         self.assertTrue(resultado["sucesso"])
+
+    def test_metadado_da_intencao_nao_e_repassado_ao_modulo(self):
+        """O texto original é rastreabilidade, não argumento da função alvo."""
+        chamada = {}
+
+        def horario(**parametros):
+            chamada.update(parametros)
+            return {"sucesso": True, "mensagem": "Agora são 10:00."}
+
+        with patch("dispatcher.consultar_horario", side_effect=horario):
+            resultado = dispatch({
+                "acao": "consultar_horario",
+                "parametros": {"local": "Brasil", "texto_original": "Que horas são?"},
+            })
+
+        self.assertTrue(resultado["sucesso"])
+        self.assertEqual(chamada, {"local": "Brasil"})
 
 if __name__ == "__main__":
     unittest.main()

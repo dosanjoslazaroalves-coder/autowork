@@ -15,7 +15,7 @@ from typing import Callable, Deque, Dict, Optional, Tuple
 from rich.text import Text
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
-from textual.widgets import RichLog, Static
+from textual.widgets import Button, Input, RichLog, Static
 
 logger = logging.getLogger(__name__)
 
@@ -132,6 +132,40 @@ class AppHUD(App):
         content-align: center middle;
         border-top: round #0e2a3a;
     }
+    #area_entrada {
+        height: auto;
+        background: #060b13;
+        border-top: round #0e2a3a;
+        padding: 0 1;
+    }
+    #linha_input {
+        height: 3;
+        align: center middle;
+    }
+    #campo_texto {
+        width: 1fr;
+        height: 3;
+        background: #09121d;
+        color: #dfe9ee;
+        border: tall #123549;
+    }
+    #campo_texto:focus {
+        border: tall #00e5ff;
+    }
+    #botao_enviar {
+        width: 12;
+        height: 3;
+        min-width: 10;
+        margin-left: 1;
+        background: #0e3a4a;
+        color: #00e5ff;
+        border: tall #123549;
+        text-style: bold;
+    }
+    #botao_enviar:hover {
+        background: #00e5ff;
+        color: #04070c;
+    }
     #rodape {
         height: 1;
         background: #060b13;
@@ -141,8 +175,9 @@ class AppHUD(App):
     }
     """
 
-    def __init__(self) -> None:
+    def __init__(self, on_enviar_texto: Optional[Callable[[str], None]] = None) -> None:
         super().__init__()
+        self._on_enviar_texto = on_enviar_texto
         self._estado = "IDLE"
         self._tick = 0
         self._ultimo_nivel_em: float = 0.0
@@ -167,6 +202,10 @@ class AppHUD(App):
             with Vertical(id="direita"):
                 yield Static(self._texto_estado(), id="estado")
                 yield Static(self._texto_mascote(), id="mascote")
+        with Vertical(id="area_entrada"):
+            with Horizontal(id="linha_input"):
+                yield Input(placeholder="Digite um comando...", id="campo_texto")
+                yield Button("Enviar", id="botao_enviar")
         yield Static(self._texto_visualizador(), id="visualizador")
         yield Static("Q — encerrar o AUTOWORK", id="rodape")
 
@@ -303,6 +342,34 @@ class AppHUD(App):
         except Exception:
             logger.debug("Status de módulo não refletido.", exc_info=True)
 
+    def on_input_submitted(self, event: Input.Submitted) -> None:
+        if event.input.id == "campo_texto":
+            self._submeter_texto()
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "botao_enviar":
+            self._submeter_texto()
+
+    def _submeter_texto(self) -> None:
+        try:
+            campo = self.query_one("#campo_texto", Input)
+            valor = campo.value
+            campo.value = ""
+        except Exception:
+            return
+
+        from entrada_texto import validar_texto
+
+        texto_limpo = validar_texto(valor)
+        if not texto_limpo:
+            return
+
+        if self._on_enviar_texto:
+            try:
+                self._on_enviar_texto(texto_limpo)
+            except Exception:
+                logger.exception("Erro ao repassar entrada de texto.")
+
     def encerrar_interface(self) -> None:
         self.exit()
 
@@ -347,10 +414,17 @@ class HUD:
 
     INTERVALO_MINIMO_NIVEL = 0.045  # segundos entre níveis enviados à UI
 
-    def __init__(self) -> None:
+    def __init__(self, on_enviar_texto: Optional[Callable[[str], None]] = None) -> None:
         self._app: Optional[AppHUD] = None
         self._ultimo_nivel_em = 0.0
         self._lock = threading.Lock()
+        self._on_enviar_texto = on_enviar_texto
+
+    def definir_ao_enviar_texto(self, callback: Callable[[str], None]) -> None:
+        """Configura o callback acionado quando o usuário envia texto pela interface."""
+        self._on_enviar_texto = callback
+        if self._app is not None:
+            self._app._on_enviar_texto = callback
 
     def set_state(self, estado: str) -> None:
         """Define o estado visível: IDLE, LISTENING, THINKING, SPEAKING, ERROR."""
@@ -384,7 +458,7 @@ class HUD:
     def executar(self, trabalho: Callable[[], None]) -> None:
         """Roda ``trabalho`` (pipeline de áudio) em thread própria e a
         interface na thread principal, até o usuário encerrar."""
-        app = AppHUD()
+        app = AppHUD(on_enviar_texto=self._on_enviar_texto)
         self._app = app
         pipeline = threading.Thread(
             target=trabalho, name="autowork-pipeline", daemon=True

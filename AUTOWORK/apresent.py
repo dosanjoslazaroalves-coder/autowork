@@ -1,4 +1,13 @@
+import logging
 import requests
+
+logger = logging.getLogger(__name__)
+
+MENSAGEM_APRESENTACAO_FALLBACK = (
+    "Olá! Eu sou o AUTOWORK, seu assistente pessoal de automação no Windows. "
+    "Posso abrir e fechar aplicativos, gerenciar abas e janelas, consultar previsão do tempo, "
+    "informar horas e datas, e auxiliar nas suas tarefas diárias."
+)
 
 
 class Apresentador:
@@ -6,10 +15,12 @@ class Apresentador:
     def __init__(
         self,
         modelo="qwen2.5:3b",
-        url="http://localhost:11434/api/generate"
+        url="http://localhost:11434/api/generate",
+        timeout: float = 8.0,
     ):
         self.modelo = modelo
         self.url = url
+        self.timeout = timeout
 
     def apresentar(self, texto):
 
@@ -44,19 +55,20 @@ Mensagem do usuário:
             resposta = requests.post(
                 self.url,
                 json=dados,
-                timeout=60
+                timeout=self.timeout
             )
 
             resposta.raise_for_status()
 
             resposta_aprest = resposta.json()
 
-            return resposta_aprest.get("response", "").strip()
+            texto_resposta = resposta_aprest.get("response", "").strip()
+            return texto_resposta if texto_resposta else MENSAGEM_APRESENTACAO_FALLBACK
 
         except requests.RequestException as erro:
-            print(f"Erro ao comunicar com o Ollama: {erro}")
-            return None
+            logger.warning("Ollama não respondeu a tempo para apresentação (%s). Usando apresentação padrão.", erro)
+            return MENSAGEM_APRESENTACAO_FALLBACK
 
         except Exception as erro:
-            print(f"Erro inesperado no apresentador: {erro}")
-            return None
+            logger.exception("Erro inesperado no apresentador: %s. Usando apresentação padrão.", erro)
+            return MENSAGEM_APRESENTACAO_FALLBACK

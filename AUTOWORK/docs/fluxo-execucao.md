@@ -34,7 +34,7 @@ Inicializacao
 
 ## Caminhos alternativos
 
-- Sem fala capturada: `ServicoCaptura.capturar()` retorna `None` em `WaitTimeoutError`; o orquestrador volta para `Estado.IDLE` sem STT e sem fala.
+- Sem fala capturada: `ServicoCaptura.capturar()` retorna `None` em `WaitTimeoutError`; o orquestrador volta para `Estado.IDLE` sem STT e sem fala
 - Fala nao compreendida/falha de STT: `ServicoReconhecimento.transcrever()` retorna `None` para `UnknownValueError`, `RequestError` ou audio ausente; o ciclo volta para `IDLE`.
 - Sem wake word: `audio.wake_word.detectar()` retorna `(False, "")`; a frase e ignorada.
 - Encerramento: depois de remover a wake word, comandos exatamente `fechar`, `encerrar` ou `desligar` falam uma mensagem de encerramento, mudam para `Estado.ENCERRANDO` e param o loop.

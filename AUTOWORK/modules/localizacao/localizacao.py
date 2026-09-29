@@ -77,12 +77,33 @@ def carregar_json(caminho: str) -> dict:
 
 MUNICIPIOS = carregar_json(os.path.join(DADOS_DIR, "municipios_brasil.json"))
 CAPITAIS = carregar_json(os.path.join(DADOS_DIR, "capitais_internacionais.json"))
+PAISES_CAPITAIS = carregar_json(os.path.join(DADOS_DIR, "paises_capitais.json"))
 ALIASES = carregar_json(os.path.join(DADOS_DIR, "aliases.json"))
 
 def normalizar_nome(nome: str) -> str:
     """Remove acentos e converte para minúsculas."""
     nome = nome.lower().strip()
     return unicodedata.normalize('NFKD', nome).encode('ASCII', 'ignore').decode('utf-8')
+
+
+def _normalizar_referencia_capital(local_norm: str) -> str:
+    """Remove o prefixo de referência usado em frases como 'capital do Japão'."""
+    for prefixo in ("capital do ", "capital da ", "capital de ", "capital dos ", "capital das "):
+        if local_norm.startswith(prefixo):
+            return local_norm[len(prefixo):].strip()
+    return local_norm
+
+
+def _localizacao_capital(registro: dict) -> dict:
+    """Converte um registro país-capital no contrato comum de localidades."""
+    return {
+        "nome": registro["capital"],
+        "pais": registro["pais"],
+        "latitude": registro["lat"],
+        "longitude": registro["lon"],
+        "timezone": registro["timezone"],
+        "capital": True,
+    }
 
 @lru_cache(maxsize=128)
 def localizar_nominatim(local: str) -> tuple[float, float]:
@@ -112,11 +133,19 @@ def resolver_localidade(local_str: str) -> dict:
     if not local_str or not local_str.strip():
         raise LocalizacaoError("Localidade não informada.")
         
-    local_norm = normalizar_nome(local_str)
+    local_norm = _normalizar_referencia_capital(normalizar_nome(local_str))
+
+    # Países são resolvidos pela capital nacional. Essa consulta vem antes
+    # dos aliases históricos que alguns países usam como atalho para cidades.
+    if local_norm in PAISES_CAPITAIS:
+        return _localizacao_capital(PAISES_CAPITAIS[local_norm])
     
     # 1. Verifica aliases
     if local_norm in ALIASES:
         local_norm = ALIASES[local_norm]
+
+    if local_norm in PAISES_CAPITAIS:
+        return _localizacao_capital(PAISES_CAPITAIS[local_norm])
         
     # 2. Tenta capitais internacionais
     if local_norm in CAPITAIS:
@@ -126,7 +155,8 @@ def resolver_localidade(local_str: str) -> dict:
             "pais": cap["pais"],
             "latitude": cap["lat"],
             "longitude": cap["lon"],
-            "timezone": cap["timezone"]
+            "timezone": cap["timezone"],
+            "capital": True,
         }
         
     # 3. Tenta municípios do Brasil
