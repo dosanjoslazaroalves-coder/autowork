@@ -269,6 +269,7 @@ class Orquestrador:
         Este método pode ser chamado diretamente para testes,
         sem depender de captura de áudio real.
         """
+        logger.info("[Orquestrador] processando comando: %r", texto)
         with self._lock_processamento:
             self._personalidade.emocao.transitar(EstadoEmocional.PROCESSANDO)
             with self._personalidade.feedback.monitorar(self._ao_feedback_espera):
@@ -284,6 +285,8 @@ class Orquestrador:
             else:
                 self._personalidade.emocao.transitar(EstadoEmocional.NEUTRO)
 
+            logger.info("[Orquestrador] resultado status=%s acao=%s",
+                        status, resultado.get("acao"))
             return resultado
 
     def _executar_processamento(self, texto: str) -> Dict[str, Any]:

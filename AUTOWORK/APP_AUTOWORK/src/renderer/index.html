@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none';"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AUTOWORK 0.3</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="app-shell" id="app-shell" data-theme="dark" data-state="idle">
+      <aside class="sidebar" id="sidebar" aria-label="Navegação principal">
+        <div class="sidebar-top">
+          <div class="brand-lockup">
+            <span class="brand-mark" aria-hidden="true"><span>AW</span></span>
+            <div class="brand-copy">
+              <span class="brand-kicker">PERSONAL ASSISTANT</span>
+              <strong>AUTOWORK</strong>
+            </div>
+          </div>
+          <button class="icon-button sidebar-toggle" id="sidebar-toggle" type="button" aria-label="Recolher menu" aria-expanded="true" title="Recolher menu">
+            <span aria-hidden="true">‹</span>
+          </button>
+        </div>
+
+        <div class="sidebar-section-label">Workspace</div>
+        <nav class="sidebar-nav">
+          <button class="nav-item is-active" type="button" data-view="home" aria-current="page" title="Visão geral">
+            <span class="nav-icon" aria-hidden="true">⌂</span><span class="nav-label">Visão geral</span>
+          </button>
+          <button class="nav-item" type="button" data-view="memory" title="Memória">
+            <span class="nav-icon" aria-hidden="true">✦</span><span class="nav-label">Memória</span><span class="nav-count">0</span>
+          </button>
+          <button class="nav-item" type="button" data-view="history" title="Histórico">
+            <span class="nav-icon" aria-hidden="true">◷</span><span class="nav-label">Histórico</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-section-label sidebar-section-label-spaced">Sistema</div>
+        <nav class="sidebar-nav">
+          <button class="nav-item" type="button" data-view="settings" title="Configurações">
+            <span class="nav-icon" aria-hidden="true">⚙</span><span class="nav-label">Configurações</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="local-status"><span class="status-dot ready" aria-hidden="true"></span><span>Ambiente local</span></div>
+          <span class="sidebar-footer-caption">Comandos no núcleo local</span>
+        </div>
+      </aside>
+
+      <div class="sidebar-scrim" id="sidebar-scrim" aria-hidden="true"></div>
+
+      <main class="main-content">
+        <header class="topbar">
+          <div class="topbar-leading">
+            <button class="icon-button mobile-menu-button" id="mobile-menu-button" type="button" aria-label="Abrir menu" title="Abrir menu">☰</button>
+            <div>
+              <span class="topbar-overline">AUTOWORK DESKTOP</span>
+              <h1 id="page-title">Visão geral</h1>
+            </div>
+          </div>
+          <div class="topbar-trailing">
+            <span class="connection-pill" id="connection-pill"><span class="status-dot" aria-hidden="true"></span><span id="connection-text">Conectando...</span></span>
+            <span class="version" id="app-version">carregando...</span>
+          </div>
+        </header>
+
+        <div class="view-stack">
+          <section class="view is-active" id="home-view" data-view-panel="home" aria-labelledby="home-heading">
+            <div class="welcome-row">
+              <div>
+                <span class="section-kicker">PAINEL DE CONTROLE</span>
+                <h2 id="home-heading">Seu espaço de comando.</h2>
+                <p>Uma interface local para acompanhar o AUTOWORK com clareza, foco e presença.</p>
+              </div>
+              <div class="system-badge"><span class="pulse-dot" aria-hidden="true"></span><span>DESKTOP LOCAL</span></div>
+            </div>
+
+            <div class="dashboard-grid">
+              <section class="card orb-card" aria-labelledby="orb-heading">
+                <div class="card-heading">
+                  <div><span class="card-kicker">NÚCLEO AUTOWORK</span><h3 id="orb-heading">Central de presença</h3></div>
+                  <span class="state-badge" id="orb-state-badge">IDLE</span>
+                </div>
+
+                <div class="orb-stage" id="orb-stage" data-state="idle" aria-live="polite" aria-label="Estado visual do AUTOWORK">
+                  <div class="orb-grid" aria-hidden="true"></div>
+                  <div class="orb-aura aura-one" aria-hidden="true"></div>
+                  <div class="orb-aura aura-two" aria-hidden="true"></div>
+                  <div class="orb-rings" aria-hidden="true"><span></span><span></span><span></span></div>
+                  <div class="orb-particles" aria-hidden="true">
+                    <span class="particle particle-one"></span><span class="particle particle-two"></span><span class="particle particle-three"></span>
+                    <span class="particle particle-four"></span><span class="particle particle-five"></span><span class="particle particle-six"></span>
+                    <span class="particle particle-seven"></span><span class="particle particle-eight"></span><span class="particle particle-nine"></span>
+                    <span class="particle particle-ten"></span><span class="particle particle-eleven"></span><span class="particle particle-twelve"></span>
+                  </div>
+                  <div class="orb-core"><div class="orb-core-shine"></div><span class="orb-core-mark">AW</span></div>
+                  <span class="orb-stage-label" id="orb-stage-label">PRONTO PARA VOCÊ</span>
+                </div>
+
+                <div class="orb-footer">
+                  <div><span class="card-kicker">ESTADO ATUAL</span><strong id="status-text">Pronto</strong></div>
+                  <div class="orb-footer-actions">
+                    <button class="button button-secondary" id="stop-button" type="button" title="Interromper a demonstração visual">Parar</button>
+                    <button class="button button-primary" id="mic-button" type="button" aria-pressed="false" title="Ativar ou desativar o microfone visual"><span class="button-icon" aria-hidden="true">◉</span><span id="mic-label">Microfone visual</span></button>
+                  </div>
+                </div>
+              </section>
+
+              <div class="dashboard-side">
+                <section class="card activity-card" aria-labelledby="activity-heading">
+                  <div class="card-heading"><div><span class="card-kicker">MONITORAMENTO</span><h3 id="activity-heading">Última atividade</h3></div><span class="activity-indicator" aria-hidden="true"></span></div>
+                  <div class="activity-main"><span class="activity-icon" aria-hidden="true">✧</span><div><strong id="activity-text">Aguardando comando</strong><span id="activity-time">Agora</span></div></div>
+                  <div class="activity-line"><span></span><span></span><span></span><span></span><span></span></div>
+                </section>
+
+                <section class="card demo-card" aria-labelledby="demo-heading">
+                  <div class="card-heading"><div><span class="card-kicker">APARÊNCIA</span><h3 id="demo-heading">Estados visuais</h3></div><span class="muted">Demonstração</span></div>
+                  <p class="card-description">Explore as animações do ORB. Durante um comando, o estado exibido acompanha o núcleo.</p>
+                  <div class="state-selector" role="group" aria-label="Selecionar estado visual">
+                    <button class="state-chip is-selected" type="button" data-state-choice="idle">Idle</button>
+                    <button class="state-chip" type="button" data-state-choice="listening">Ouvindo</button>
+                    <button class="state-chip" type="button" data-state-choice="processing">Processando</button>
+                    <button class="state-chip" type="button" data-state-choice="speaking">Falando</button>
+                    <button class="state-chip" type="button" data-state-choice="executing">Executando</button>
+                    <button class="state-chip" type="button" data-state-choice="success">Concluído</button>
+                    <button class="state-chip" type="button" data-state-choice="error">Erro</button>
+                  </div>
+                  <button class="button button-quiet demo-flow-button" id="demo-flow-button" type="button"><span aria-hidden="true">▶</span> Rodar sequência visual</button>
+                </section>
+              </div>
+            </div>
+            <section class="card command-card" aria-labelledby="command-heading">
+              <div class="card-heading"><div><span class="card-kicker">FALE COM O AUTOWORK</span><h3 id="command-heading">Seu próximo comando</h3></div><span class="muted">Processamento local</span></div>
+              <form id="command-form" aria-busy="false">
+                <label class="command-label" for="command-input">Mensagem ou comando</label>
+                <div class="command-row">
+                  <textarea id="command-input" rows="3" maxlength="4000" placeholder="Digite sua mensagem ou comando. Ex.: que horas são" autocomplete="off" aria-describedby="command-hint command-result"></textarea>
+                  <button class="button button-primary" id="command-button" type="submit">Enviar <span aria-hidden="true">↗</span></button>
+                </div>
+                <div class="command-footer"><span id="command-hint">Enter para enviar · Shift + Enter para nova linha</span><span id="command-count">0 / 4000</span></div>
+                <p class="command-result" id="command-result" role="status" aria-live="polite">Digite um comando para começar.</p>
+              </form>
+            </section>
+          </section>
+
+          <section class="view" id="memory-view" data-view-panel="memory" aria-labelledby="memory-heading" hidden>
+            <div class="page-heading"><span class="section-kicker">CONTEXTO</span><h2 id="memory-heading">Memória</h2><p>O espaço para contexto persistente do AUTOWORK estará disponível em uma próxima integração.</p></div>
+            <div class="empty-state card"><div class="empty-state-icon" aria-hidden="true">✦</div><span class="state-badge">SOMENTE INTERFACE</span><h3>Nenhuma memória disponível.</h3><p>A estrutura visual está pronta para receber uma camada de memória no futuro, sem armazenar dados nesta versão.</p></div>
+          </section>
+
+          <section class="view" id="history-view" data-view-panel="history" aria-labelledby="history-heading" hidden>
+            <div class="page-heading"><span class="section-kicker">REGISTRO LOCAL</span><h2 id="history-heading">Histórico</h2><p>Comandos e demonstrações desta sessão.</p></div>
+            <div class="history-layout"><section class="card history-card"><div class="card-heading"><div><span class="card-kicker">ATIVIDADE RECENTE</span><h3>Eventos da sessão</h3></div><span class="muted">temporário</span></div><div class="history-list" id="history-list"></div></section><aside class="card history-summary"><span class="card-kicker">RESUMO</span><strong id="history-total">0</strong><span>eventos da sessão</span><div class="summary-rule"></div><span class="muted">Nenhum dado é persistido.</span></aside></div>
+          </section>
+
+          <section class="view" id="settings-view" data-view-panel="settings" aria-labelledby="settings-heading" hidden>
+            <div class="page-heading"><span class="section-kicker">PREFERÊNCIAS</span><h2 id="settings-heading">Configurações</h2><p>Ajuste a aparência da interface para o seu ambiente de trabalho.</p></div>
+            <div class="settings-grid">
+              <section class="card settings-card"><div class="settings-card-heading"><span class="settings-icon" aria-hidden="true">◐</span><div><h3>Tema</h3><p>Escolha como o AUTOWORK aparece para você.</p></div></div><div class="theme-options" role="group" aria-label="Selecionar tema"><button class="theme-option is-selected" type="button" data-theme-choice="dark"><span class="theme-preview theme-preview-dark" aria-hidden="true"></span><span><strong>Escuro</strong><small>Foco e contraste</small></span><span class="option-check" aria-hidden="true">✓</span></button><button class="theme-option" type="button" data-theme-choice="light"><span class="theme-preview theme-preview-light" aria-hidden="true"></span><span><strong>Claro</strong><small>Leve e luminoso</small></span><span class="option-check" aria-hidden="true">✓</span></button></div></section>
+              <section class="card settings-card"><div class="settings-card-heading"><span class="settings-icon" aria-hidden="true">✧</span><div><h3>Interface</h3><p>Controles visuais preparados para futuras integrações.</p></div></div><label class="toggle-row" for="animations-toggle"><span><strong>Animações suaves</strong><small>Movimento e transições do núcleo</small></span><input id="animations-toggle" type="checkbox" checked /><span class="toggle-control" aria-hidden="true"></span></label><div class="settings-divider"></div><div class="info-row"><span>Modo de operação</span><strong>Núcleo local</strong></div></section>
+              <section class="card settings-card about-card"><div class="settings-card-heading"><span class="settings-icon" aria-hidden="true">i</span><div><h3>Sobre o aplicativo</h3><p>AUTOWORK Desktop para Windows.</p></div></div><div class="about-meta"><span>Versão</span><strong id="about-version">—</strong><span>Motor</span><strong>AUTOWORK Python</strong><span>Privacidade</span><strong>Sem dados persistentes</strong></div></section>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+    <script src="theme.js"></script>
+    <script src="state.js"></script>
+    <script src="components/orb.js"></script>
+    <script src="renderer.js"></script>
+  </body>
+</html>

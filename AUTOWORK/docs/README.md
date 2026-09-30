@@ -12,8 +12,9 @@ AUTOWORK e um assistente local para computador, escrito em Python, com foco em c
 - Abertura de sites cadastrados com `webbrowser`.
 - Atalhos de janela e navegador com `pyautogui`.
 - Consulta de horario, data, diferenca/conversao de horario, clima e localizacao.
-- Conversa via OpenRouter usando o SDK `openai`.
-- Apresentacao via Ollama local usando `requests`.
+- Conversa normal via Ollama local usando o modelo `qwen3:8b`.
+- Conversa avançada via OpenRouter usando o SDK `openai`.
+- Apresentação e interpretação auxiliar via Ollama local.
 - TTS experimental via Kokoro em `modules/voz_teste`.
 - Modulo independente de visao computacional em `teste_viso.py` usando OpenCV e MediaPipe.
 - Instrumentacao de metricas em `metricas.py` e `rodar_metricas.py`.

@@ -14,15 +14,16 @@ try:
 except ImportError:  # pragma: no cover - dependência opcional em ambientes mínimos
     requests = None
 
+from conversa.ollama import OLLAMA_AUX_TIMEOUT, OLLAMA_MODEL, OLLAMA_NUM_PREDICT, OLLAMA_URL
+
 
 logger = logging.getLogger(__name__)
 
 
 STATUS_WORKFLOW_PLANEJADO = "planejado"
 STATUS_ETAPA_PENDENTE = "pendente"
-OLLAMA_URL = os.getenv("AUTOWORK_OLLAMA_URL", "http://localhost:11434/api/generate")
-OLLAMA_MODELO = os.getenv("AUTOWORK_OLLAMA_MODEL", "qwen3:8b")
-OLLAMA_TIMEOUT = float(os.getenv("AUTOWORK_OLLAMA_TIMEOUT", "5"))
+OLLAMA_MODELO = OLLAMA_MODEL
+OLLAMA_TIMEOUT = OLLAMA_AUX_TIMEOUT
 
 VERBOS_ABRIR = {
     "abra",
@@ -453,6 +454,8 @@ def _interpretar_sequencia_com_ollama(texto: str) -> Optional[List[Dict[str, Any
                 "prompt": prompt,
                 "stream": False,
                 "format": "json",
+                "think": False,
+                "options": {"num_predict": OLLAMA_NUM_PREDICT},
             },
             timeout=OLLAMA_TIMEOUT,
         )

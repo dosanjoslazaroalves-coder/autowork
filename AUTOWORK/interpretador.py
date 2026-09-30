@@ -2,6 +2,8 @@ import json
 import re
 from typing import Any
 
+from conversa.ollama import OLLAMA_MODEL, OLLAMA_URL
+
 try:
     import requests
 except ImportError: 
@@ -11,8 +13,8 @@ except ImportError:
 class InterpretadorComplexo:
 
     def __init__(self, modelo, url):
-        modelo = "qwen3:8b"
-        url = "http://localhost:11434/api/generate"
+        modelo = OLLAMA_MODEL
+        url = OLLAMA_URL
 
         self.modelo = modelo
         self.url = url
@@ -102,7 +104,8 @@ class InterpretadorComplexo:
         dados = {
             "model": self.modelo,
             "prompt": prompt,
-            "stream": False
+            "stream": False,
+            "think": False,
         }
 
         try:

@@ -45,7 +45,7 @@ Essas flags ativam ciclo de metricas, impressao de relatorio e fala do relatorio
 - OpenRouter: `https://openrouter.ai/api/v1`.
 - Modelo OpenRouter: `openrouter/free`.
 - Ollama local: `http://localhost:11434/api/generate`.
-- Modelo Ollama: `qwen2.5:3b`.
+- Modelo Ollama: `qwen3:8b` (fixo; não há fallback automático para outro modelo).
 - Kokoro: `hexgrad/Kokoro-82M`.
 - MediaPipe vision: `MODEL_URL` em `teste_viso.py`, baixado para `hand_landmarker.task`.
 

@@ -1,0 +1,65 @@
+{
+  "name": "autowork-desktop",
+  "version": "0.3.0",
+  "description": "Electron desktop shell for the AUTOWORK automation engine",
+  "main": "dist/main.js",
+  "author": "AUTOWORK",
+  "license": "UNLICENSED",
+  "private": true,
+  "packageManager": "pnpm@11.19.0",
+  "scripts": {
+    "clean": "node scripts/clean.mjs",
+    "build": "node scripts/build.mjs",
+    "start": "node scripts/build.mjs && electron .",
+    "start:api": "node scripts/run-python.mjs python/api.py",
+    "test:api": "node scripts/run-python.mjs -m pytest python/test_api.py",
+    "build:sidecar": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-sidecar.ps1",
+    "dist": "node scripts/build.mjs && node scripts/dist.mjs",
+    "dist:dir": "node scripts/build.mjs && node scripts/dist.mjs --dir",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "electron": "^38.0.0",
+    "electron-builder": "^26.0.12",
+    "typescript": "^5.8.2"
+  },
+  "build": {
+    "appId": "com.autowork.desktop",
+  "productName": "AUTOWORK 0.3",
+    "asar": true,
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "to": "autowork/autowork-api.exe",
+        "from": "python/autowork-api.exe"
+      }
+    ],
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "AUTOWORK 0.3",
+      "artifactName": "AUTOWORK_0.3.0-Setup.exe"
+    },
+    "portable": {
+      "artifactName": "AUTOWORK_0.3.0.exe"
+    }
+  }
+}

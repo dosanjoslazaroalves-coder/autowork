@@ -1,6 +1,8 @@
 import logging
 import requests
 
+from conversa.ollama import OLLAMA_MODEL, OLLAMA_NUM_PREDICT, OLLAMA_TIMEOUT, OLLAMA_URL
+
 logger = logging.getLogger(__name__)
 
 MENSAGEM_APRESENTACAO_FALLBACK = (
@@ -14,9 +16,9 @@ class Apresentador:
 
     def __init__(
         self,
-        modelo="qwen2.5:3b",
-        url="http://localhost:11434/api/generate",
-        timeout: float = 8.0,
+        modelo=OLLAMA_MODEL,
+        url=OLLAMA_URL,
+        timeout: float = OLLAMA_TIMEOUT,
     ):
         self.modelo = modelo
         self.url = url
@@ -48,7 +50,9 @@ Mensagem do usuário:
         dados = {
             "model": self.modelo,
             "prompt": prompt,
-            "stream": False
+            "stream": False,
+            "think": False,
+            "options": {"num_predict": OLLAMA_NUM_PREDICT},
         }
 
         try:

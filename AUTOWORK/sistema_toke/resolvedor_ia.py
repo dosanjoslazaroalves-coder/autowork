@@ -18,12 +18,13 @@ import logging
 import re
 from typing import Any, Dict, List, Optional
 
+from conversa.ollama import OLLAMA_AUX_TIMEOUT, OLLAMA_MODEL, OLLAMA_NUM_PREDICT, OLLAMA_URL
+
 logger = logging.getLogger(__name__)
 
 # ── Configuração padrão (compatível com apresent.py) ─────────────
-OLLAMA_URL = "http://localhost:11434/api/generate"
-OLLAMA_MODELO = "qwen3:8b"
-OLLAMA_TIMEOUT = 5.0
+OLLAMA_MODELO = OLLAMA_MODEL
+OLLAMA_TIMEOUT = OLLAMA_AUX_TIMEOUT
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -164,48 +165,49 @@ def _chamar_ollama(
         logger.warning("Resolvedor IA: 'requests' não instalado.")
         return None
 
-    modelos = [modelo]
-    if "qwen2.5:3b" not in modelos:
-        modelos.append("qwen2.5:3b")
+    # O parâmetro permanece por compatibilidade, mas o projeto usa somente
+    # qwen3:8b e não faz fallback silencioso para outro modelo.
+    modelo = OLLAMA_MODEL
+    dados = {
+        "model": modelo,
+        "prompt": prompt,
+        "stream": False,
+        "format": "json",
+        "think": False,
+        "options": {"num_predict": OLLAMA_NUM_PREDICT},
+    }
 
-    for mod in modelos:
-        dados = {
-            "model": mod,
-            "prompt": prompt,
-            "stream": False,
-            "format": "json",
-        }
-
-        try:
-            resposta = requests.post(url, json=dados, timeout=timeout)
-            if resposta.status_code == 404 or (resposta.status_code == 200 and "not found" in resposta.text.lower()):
-                logger.debug("Resolvedor IA: modelo %s não encontrado, tentando fallback.", mod)
-                continue
-
-            resposta.raise_for_status()
-            corpo = resposta.json()
-            return corpo.get("response", "")
-        except requests.exceptions.ConnectionError:
-            logger.debug("Resolvedor IA: Ollama indisponível (conexão recusada).")
-            return None
-        except requests.exceptions.Timeout:
-            logger.debug("Resolvedor IA: timeout ao consultar Ollama (%ss).", timeout)
-            return None
-        except requests.exceptions.HTTPError as exc:
-            status = getattr(exc.response, "status_code", "?")
-            logger.warning("Resolvedor IA: HTTP %s do Ollama para modelo %s.", status, mod)
-            continue
-        except requests.exceptions.RequestException as exc:
-            logger.debug("Resolvedor IA: erro de requisição: %s", exc)
-            return None
-        except (json.JSONDecodeError, KeyError, TypeError):
-            logger.debug("Resolvedor IA: corpo da resposta não é JSON válido.")
-            return None
-        except Exception:
-            logger.debug("Resolvedor IA: erro inesperado.", exc_info=True)
+    try:
+        resposta = requests.post(url, json=dados, timeout=timeout)
+        if resposta.status_code == 404 and "not found" in resposta.text.lower():
+            logger.error("[OLLAMA][ERRO] Modelo %s não encontrado no resolvedor IA.", modelo)
             return None
 
-    return None
+        resposta.raise_for_status()
+        corpo = resposta.json()
+        if not isinstance(corpo, dict) or not isinstance(corpo.get("response"), str):
+            logger.error("[OLLAMA][ERRO] Resposta inválida no resolvedor IA.")
+            return None
+        return corpo["response"]
+    except requests.exceptions.ConnectionError:
+        logger.error("[OLLAMA][ERRO] Ollama indisponível no resolvedor IA.")
+        return None
+    except requests.exceptions.Timeout:
+        logger.error("[OLLAMA][ERRO] Timeout no resolvedor IA (%ss).", timeout)
+        return None
+    except requests.exceptions.HTTPError as exc:
+        status = getattr(exc.response, "status_code", "?")
+        logger.error("[OLLAMA][ERRO] HTTP %s no resolvedor IA.", status)
+        return None
+    except requests.exceptions.RequestException as exc:
+        logger.error("[OLLAMA][ERRO] Requisição no resolvedor IA: %s", exc)
+        return None
+    except (json.JSONDecodeError, KeyError, TypeError, ValueError):
+        logger.error("[OLLAMA][ERRO] JSON inválido no resolvedor IA.")
+        return None
+    except Exception:
+        logger.exception("[OLLAMA][ERRO] Falha inesperada no resolvedor IA.")
+        return None
 
 
 # ══════════════════════════════════════════════════════════════════

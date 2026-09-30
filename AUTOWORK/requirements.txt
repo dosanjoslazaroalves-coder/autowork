@@ -16,12 +16,16 @@ requests>=2.31.0
 # Dados
 tzdata>=2024.1
 
+# Ponte HTTP local para a interface desktop
+fastapi>=0.115,<1
+uvicorn[standard]>=0.34,<1
+
 # TTS (Kokoro) — instalação manual recomendada
-# kokoro>=0.9
-# torch>=2.0
-# sounddevice>=0.4.6
-# numpy>=1.24
-# scipy>=1.11
-# misaki
-# phonemizer-fork
-# espeakng-loader
+kokoro>=0.9
+torch>=2.0
+sounddevice>=0.4.6
+numpy>=1.24
+scipy>=1.11
+misaki
+phonemizer-fork
+espeakng-loader

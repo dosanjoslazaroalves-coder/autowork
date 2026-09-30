@@ -126,7 +126,9 @@ def _tentar_interpretador(texto: str) -> tuple[Optional[float], Optional[str]]:
     except Exception as exc:
         return None, f"interpretador.py não importou: {exc}"
 
-    interp = InterpretadorComplexo("qwen2.5:3b", "http://localhost:11434/api/generate")
+    from conversa.ollama import OLLAMA_MODEL, OLLAMA_URL
+
+    interp = InterpretadorComplexo(OLLAMA_MODEL, OLLAMA_URL)
     t0 = m.agora_ns()
     try:
         resultado = interp.interpretar(texto)
