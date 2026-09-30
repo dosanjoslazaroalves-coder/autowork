@@ -27,3 +27,8 @@ teste/espeak-ng-install.log
 /TODO.md
 /beta_projeto/
 /teste/
+
+# AUTOWORK Desktop - binarios e cache gerados
+.pnpm-store/
+/APP_AUTOWORK/*.exe
+/APP_AUTOWORK/python/*.exe
