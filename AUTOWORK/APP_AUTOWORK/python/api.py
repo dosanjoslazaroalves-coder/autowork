@@ -41,10 +41,19 @@ class ApiSettings:
 service = AutoworkService()
 app = FastAPI(
     title="AUTOWORK Local API",
-    version="0.3.0",
+    version="0.3.1",
     docs_url=None,
     redoc_url=None,
 )
+
+
+@app.on_event("shutdown")
+def shutdown_voice() -> None:
+    """Libera o microfone antes de o sidecar terminar."""
+    try:
+        service.stop_voice()
+    except Exception:
+        LOGGER.exception("[FastAPI] Falha ao encerrar o ciclo de voz")
 
 
 @app.get("/health")
@@ -76,6 +85,32 @@ def command(request: CommandRequest) -> dict[str, object]:
     except Exception as exc:
         LOGGER.exception("[FastAPI] Erro ao processar comando pelo núcleo AUTOWORK")
         raise HTTPException(status_code=500, detail="Erro interno do AUTOWORK") from exc
+
+
+@app.post("/api/voice/start")
+def voice_start() -> dict[str, object]:
+    LOGGER.info("[FastAPI] POST /api/voice/start")
+    try:
+        return service.start_voice()
+    except CoreUnavailable as exc:
+        LOGGER.error("[FastAPI] Núcleo AUTOWORK indisponível: %s", exc)
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:
+        LOGGER.exception("[FastAPI] Falha ao iniciar a voz")
+        raise HTTPException(status_code=500, detail="Não foi possível iniciar a voz") from exc
+
+
+@app.post("/api/voice/stop")
+def voice_stop() -> dict[str, object]:
+    LOGGER.info("[FastAPI] POST /api/voice/stop")
+    try:
+        return service.stop_voice()
+    except CoreUnavailable as exc:
+        LOGGER.error("[FastAPI] Núcleo AUTOWORK indisponível: %s", exc)
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:
+        LOGGER.exception("[FastAPI] Falha ao parar a voz")
+        raise HTTPException(status_code=500, detail="Não foi possível parar a voz") from exc
 
 
 def configure_logging() -> None:

@@ -42,6 +42,7 @@ let lastConnectionLabel = "";
 let lastCoreStatus = "";
 let bridgeReady = false;
 let coreReady = false;
+let voiceRequestPending = false;
 let unsubscribeConnection: (() => void) | undefined;
 
 // This map only represents states reported by the Python core.
@@ -53,14 +54,19 @@ const coreVisualStates: Record<string, AutoworkRenderer.OrbState> = {
 
 function syncCommandControls(): void {
   const busy = commandPending || coreBusy;
+  const voiceRunning = store.getState().micEnabled;
   const button = document.querySelector<HTMLButtonElement>("#command-button");
   if (button) {
-    button.disabled = busy || !bridgeReady || !coreReady;
+    button.disabled = busy || voiceRequestPending || voiceRunning || !bridgeReady || !coreReady;
     button.textContent = busy ? "Processando…" : "Enviar ↗";
   }
   document.querySelector("#command-form")?.setAttribute("aria-busy", String(busy));
   document.querySelector(".command-card")?.classList.toggle("is-processing", busy);
-  document.querySelectorAll<HTMLButtonElement>("[data-state-choice], #demo-flow-button, #mic-button, #stop-button").forEach((control) => { control.disabled = busy; });
+  document.querySelectorAll<HTMLButtonElement>("[data-state-choice], #demo-flow-button").forEach((control) => { control.disabled = busy || voiceRunning; });
+  const micButton = document.querySelector<HTMLButtonElement>("#mic-button");
+  if (micButton) micButton.disabled = voiceRequestPending || !bridgeReady || !coreReady;
+  const stopButton = document.querySelector<HTMLButtonElement>("#stop-button");
+  if (stopButton) stopButton.disabled = voiceRequestPending || (!voiceRunning && busy);
 }
 
 function updateActivity(state: AutoworkRenderer.OrbState, customText?: string): void {
@@ -135,8 +141,14 @@ async function loadAutoworkStatus(): Promise<void> {
     const ready = status.ready ?? (status.autowork === "online" && status.core !== "offline");
     const state = (status.state ?? (ready ? "IDLE" : "INICIALIZANDO")).toUpperCase();
     const failed = Boolean(status.error) || status.core === "offline";
+    const voiceRunning = Boolean(status.voice_running);
     coreReady = online && ready && !failed;
     coreBusy = coreReady && ["PROCESSANDO", "EXECUTANDO", "FALANDO", "OUVINDO", "TRANSCREVENDO", "DETECTANDO_WAKE"].includes(state);
+    if (store.getState().micEnabled !== voiceRunning) store.update({ micEnabled: voiceRunning });
+    const transcript = document.querySelector<HTMLElement>("#voice-transcript");
+    if (transcript && status.last_transcript) transcript.textContent = `"${status.last_transcript}"`;
+    const orbStage = document.querySelector<HTMLElement>("#orb-stage");
+    orbStage?.style.setProperty("--audio-level", String(status.audio_level ?? 0));
     const coreStatus = JSON.stringify({ api: status.api, core: status.core, ready, state, error: status.error });
     if (coreStatus !== lastCoreStatus) console.info("[Renderer] Status real do núcleo:", coreStatus);
     lastCoreStatus = coreStatus;
@@ -160,7 +172,7 @@ async function loadAutoworkStatus(): Promise<void> {
   } finally {
     statusRequestPending = false;
     syncCommandControls();
-    if (!rendererClosed) statusTimer = window.setTimeout(() => void loadAutoworkStatus(), 1500);
+    if (!rendererClosed) statusTimer = window.setTimeout(() => void loadAutoworkStatus(), store.getState().micEnabled ? 400 : 1500);
   }
 }
 
@@ -168,7 +180,7 @@ async function sendRealCommand(): Promise<void> {
   const input = document.querySelector<HTMLTextAreaElement>("#command-input");
   const resultElement = document.querySelector<HTMLElement>("#command-result");
   const texto = input?.value.trim() ?? "";
-  if (!texto || !resultElement || commandPending || coreBusy || !bridgeReady || !coreReady) return;
+  if (!texto || !resultElement || commandPending || voiceRequestPending || coreBusy || store.getState().micEnabled || !bridgeReady || !coreReady) return;
   console.info("[Renderer] Comando enviado:", texto);
   commandPending = true;
   commandRevision++;
@@ -212,6 +224,30 @@ function updateCommandCount(): void {
   const input = document.querySelector<HTMLTextAreaElement>("#command-input");
   const count = document.querySelector("#command-count");
   if (count) count.textContent = (input?.value.length ?? 0) + " / 4000";
+}
+
+async function toggleRealVoice(forceEnabled?: boolean): Promise<void> {
+  if (voiceRequestPending || !bridgeReady || !coreReady) return;
+  const enabled = forceEnabled ?? !store.getState().micEnabled;
+  voiceRequestPending = true;
+  syncCommandControls();
+  updateActivity(enabled ? "processing" : "idle", enabled ? "Iniciando microfone real" : "Parando microfone real");
+  try {
+    const status = enabled
+      ? await window.electronAPI.startAutoworkVoice()
+      : await window.electronAPI.stopAutoworkVoice();
+    const voiceRunning = (status as { voice_running?: boolean }).voice_running === true;
+    store.update({ micEnabled: voiceRunning });
+    updateActivity(voiceRunning ? "listening" : "idle", voiceRunning ? "Microfone real ativo" : "Microfone real parado");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("[Renderer] Falha ao alternar voz:", message);
+    updateActivity("error", message);
+  } finally {
+    voiceRequestPending = false;
+    syncCommandControls();
+    void loadAutoworkStatus();
+  }
 }
 
 function runVisualFlow(): void {
@@ -279,7 +315,7 @@ function render(state: AutoworkRenderer.UiState): void {
   sidebarToggle.innerHTML = `<span aria-hidden="true">${state.sidebarCollapsed ? "›" : "‹"}</span>`;
   micButton.setAttribute("aria-pressed", String(state.micEnabled));
   micButton.classList.toggle("is-active", state.micEnabled);
-  micLabel.textContent = state.micEnabled ? "Desativar visual" : "Microfone visual";
+  micLabel.textContent = state.micEnabled ? "Desativar microfone" : "Ativar microfone";
 
   document.querySelectorAll<HTMLElement>("[data-view]").forEach((button) => {
     const active = button.dataset.view === state.view;
@@ -349,14 +385,13 @@ orbStage?.addEventListener("pointerleave", () => {
 });
 
 document.querySelector("#mic-button")?.addEventListener("click", () => {
-  if (commandPending || coreBusy) return;
-  visualPreview = true;
-  const enabled = !store.getState().micEnabled;
-  store.update({ micEnabled: enabled });
-  updateActivity(enabled ? "listening" : "idle", enabled ? "Microfone visual ativado" : "Microfone visual desativado");
-  addHistoryItem(enabled ? "listening" : "idle");
+  void toggleRealVoice();
 });
 document.querySelector("#stop-button")?.addEventListener("click", () => {
+  if (store.getState().micEnabled) {
+    void toggleRealVoice(false);
+    return;
+  }
   if (commandPending || coreBusy) return;
   visualPreview = false;
   clearFlowTimers();
@@ -405,7 +440,7 @@ async function initializeElectronBridge(): Promise<void> {
   syncCommandControls();
   try {
     const bridge = window.electronAPI;
-    const requiredMethods = ["pingAutowork", "getAppInfo", "getAutoworkStatus", "sendAutoworkCommand", "onAutoworkConnection"] as const;
+    const requiredMethods = ["pingAutowork", "getAppInfo", "getAutoworkStatus", "sendAutoworkCommand", "startAutoworkVoice", "stopAutoworkVoice", "onAutoworkConnection"] as const;
     if (!bridge || requiredMethods.some((method) => typeof bridge[method] !== "function")) {
       throw new Error("A ponte electronAPI está ausente ou desatualizada. Consulte os logs de preload e refaça o build.");
     }

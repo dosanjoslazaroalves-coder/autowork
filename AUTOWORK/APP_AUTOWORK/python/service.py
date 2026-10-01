@@ -23,7 +23,9 @@ def _default_core_path() -> Path:
     """Find the sibling development checkout without hard-coding a user path."""
     if getattr(sys, "frozen", False):
         return Path(sys._MEIPASS)
-    return Path(__file__).resolve().parents[2] / "Chat" / "AUTOWORK"
+    # service.py fica em AUTOWORK/APP_AUTOWORK/python; parents[2] já é o
+    # checkout do núcleo AUTOWORK. O sufixo /Chat/AUTOWORK duplicava a árvore.
+    return Path(__file__).resolve().parents[2]
 
 
 class AutoworkService:
@@ -66,6 +68,14 @@ class AutoworkService:
                     result.get("status"), result.get("acao"), result.get("estado"))
         return result
 
+    def start_voice(self) -> dict[str, Any]:
+        """Inicia a captura/STT real do mesmo orquestrador do terminal."""
+        return self._load_core().start_voice()
+
+    def stop_voice(self) -> dict[str, Any]:
+        """Solicita o encerramento da escuta real do núcleo."""
+        return self._load_core().stop_voice()
+
     def handle(self, action: str, payload: object | None = None) -> object:
         if action == "ping":
             return {**self.health(), "service": "AUTOWORK", "time": self.status()["time"]}
@@ -75,6 +85,12 @@ class AutoworkService:
             if not isinstance(payload, str):
                 raise ValueError("payload do comando deve ser texto")
             return self.command(payload)
+        if action == "voice.start":
+            return self.start_voice()
+        if action == "voice.stop":
+            return self.stop_voice()
+        if action == "voice.status":
+            return self.status()
         raise ValueError(f"Ação de transporte não suportada: {action}")
 
     def _load_core(self):

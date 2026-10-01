@@ -1,7 +1,7 @@
 $ErrorActionPreference = "Stop"
 
 $appRoot = Split-Path -Parent $PSScriptRoot
-$defaultCorePath = [IO.Path]::GetFullPath((Join-Path $appRoot "..\Chat\AUTOWORK"))
+$defaultCorePath = [IO.Path]::GetFullPath((Join-Path $appRoot ".."))
 $corePath = if ($env:AUTOWORK_CORE_PATH) { [IO.Path]::GetFullPath($env:AUTOWORK_CORE_PATH) } else { $defaultCorePath }
 if (-not (Test-Path -LiteralPath (Join-Path $corePath "core\servico_api.py"))) {
   throw "Núcleo AUTOWORK não encontrado em '$corePath'. Defina AUTOWORK_CORE_PATH."

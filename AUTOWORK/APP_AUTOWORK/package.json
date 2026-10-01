@@ -1,6 +1,6 @@
 {
   "name": "autowork-desktop",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Electron desktop shell for the AUTOWORK automation engine",
   "main": "dist/main.js",
   "author": "AUTOWORK",
@@ -26,7 +26,7 @@
   },
   "build": {
     "appId": "com.autowork.desktop",
-  "productName": "AUTOWORK 0.3",
+  "productName": "AUTOWORK 0.3.1",
     "asar": true,
     "files": [
       "dist/**/*",
@@ -55,11 +55,11 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": "always",
       "createStartMenuShortcut": true,
-      "shortcutName": "AUTOWORK 0.3",
-      "artifactName": "AUTOWORK_0.3.0-Setup.exe"
+      "shortcutName": "AUTOWORK 0.3.1",
+      "artifactName": "AUTOWORK_0.3.1-Setup.exe"
     },
     "portable": {
-      "artifactName": "AUTOWORK_0.3.0.exe"
+      "artifactName": "AUTOWORK_0.3.1.exe"
     }
   }
 }

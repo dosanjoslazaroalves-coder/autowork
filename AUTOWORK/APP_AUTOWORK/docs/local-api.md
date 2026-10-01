@@ -49,6 +49,13 @@ ações que alterem aplicativos do usuário. Comandos que passam pelo Ollama
 exigem o modelo/serviço definido no núcleo; isso é uma dependência funcional
 existente, não um requisito de instalação manual de Python.
 
+`POST /api/voice/start` inicia, em uma única thread, o mesmo ciclo de captura,
+STT, interpretação, execução e TTS usado por `app.py --terminal`. A transcrição
+real fica em `last_transcript`, enquanto `state`, `last_response`,
+`voice_running` e `audio_level` permitem que a HUD reflita o estado do núcleo.
+`POST /api/voice/stop` solicita o encerramento da escuta; o timeout curto da
+ponte permite parar a captura sem deixar a janela bloqueada.
+
 ## Terminal e UTF-8
 
 `app.py --texto` continua disponível no projeto original, além das opções de
@@ -100,7 +107,7 @@ pnpm run dist
 O electron-builder inclui somente o executável em
 `resources/autowork/autowork-api.exe`. Os scripts conferem sua existência e
 tamanho depois do build. O instalador NSIS é copiado da pasta `release` para
-a raiz com o nome `AUTOWORK-Setup-0.3.0.exe`, mantendo o original.
+a raiz com o nome `AUTOWORK-Setup-0.3.1.exe`, mantendo o original.
 
 Após instalar, confira fisicamente o atalho `AUTOWORK` na Área de Trabalho e
 seu destino `AUTOWORK.exe`; abra pelo atalho, envie comandos e feche o app.

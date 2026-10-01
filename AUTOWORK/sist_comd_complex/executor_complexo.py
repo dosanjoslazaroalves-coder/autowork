@@ -28,10 +28,16 @@ class ExecutorComplexo:
         executor_etapa: Optional[ExecutorEtapa] = None,
         *,
         timeout_padrao: Optional[float] = None,
+        ao_iniciar_etapa: Optional[Callable[[Mapping[str, Any]], None]] = None,
+        ao_finalizar_etapa: Optional[Callable[[Mapping[str, Any], Mapping[str, Any]], None]] = None,
+        pode_cancelar_etapa: Optional[Callable[[Mapping[str, Any]], bool]] = None,
     ) -> None:
         self._executor_etapa = executor_etapa or _executar_acao_real
         self._timeout_padrao = timeout_padrao
         self._cancelado = threading.Event()
+        self._ao_iniciar_etapa = ao_iniciar_etapa
+        self._ao_finalizar_etapa = ao_finalizar_etapa
+        self._pode_cancelar_etapa = pode_cancelar_etapa
 
     def cancelar_workflow(self) -> None:
         self._cancelado.set()
@@ -72,6 +78,19 @@ class ExecutorComplexo:
                 break
 
             contexto["etapa_atual"] = etapa.get("id")
+            if self._pode_cancelar_etapa and self._pode_cancelar_etapa(etapa):
+                resultado = _resultado_etapa(
+                    etapa,
+                    sucesso=False,
+                    status=STATUS_CANCELADO,
+                    mensagem=None,
+                    erro="acao_cancelada_pelo_usuario",
+                )
+                contexto["resultados"].append(resultado)
+                contexto["etapas_falhas"].append(etapa.get("id"))
+                if self._ao_finalizar_etapa:
+                    self._ao_finalizar_etapa(etapa, resultado)
+                continue
             dependencia_quebrada = self._dependencia_quebrada(etapa, contexto["resultados"])
             if dependencia_quebrada:
                 resultado = _resultado_etapa(
@@ -96,8 +115,12 @@ class ExecutorComplexo:
                 etapa.get("acao"),
                 STATUS_EXECUTANDO,
             )
+            if self._ao_iniciar_etapa:
+                self._ao_iniciar_etapa(etapa)
             resultado = self._executar_com_retry(etapa)
             contexto["resultados"].append(resultado)
+            if self._ao_finalizar_etapa:
+                self._ao_finalizar_etapa(etapa, resultado)
 
             if resultado["sucesso"]:
                 contexto["etapas_concluidas"].append(etapa.get("id"))
@@ -216,8 +239,11 @@ class ExecutorComplexo:
         return None
 
 
-def executar_workflow(plano: Mapping[str, Any]) -> Dict[str, Any]:
-    return ExecutorComplexo().executar(plano)
+def executar_workflow(
+    plano: Mapping[str, Any],
+    executor: Optional[ExecutorComplexo] = None,
+) -> Dict[str, Any]:
+    return (executor or ExecutorComplexo()).executar(plano)
 
 
 def _normalizar_retorno(

@@ -1,4 +1,4 @@
-# AUTOWORK Desktop 0.3.0
+# AUTOWORK Desktop 0.3.1
 
 Interface Windows em Electron e TypeScript para o núcleo Python existente do
 AUTOWORK. ORB, partículas, HUD, temas e controles continuam na interface;
@@ -63,14 +63,14 @@ dados de localidades e fusos horários. Não é necessário Python global, pip o
 venv na máquina do usuário final.
 
 `dist:dir` gera `release/win-unpacked`. `dist` gera o instalador NSIS
-`release/AUTOWORK-Setup-0.3.0.exe` e copia o mesmo arquivo para a raiz do projeto:
+`release/AUTOWORK-Setup-0.3.1.exe` e copia o mesmo arquivo para a raiz do projeto:
 
 ```text
-APP_AUTOWORK/AUTOWORK-Setup-0.3.0.exe
+APP_AUTOWORK/AUTOWORK-Setup-0.3.1.exe
 ```
 
 O executável portátil já suportado pelo projeto também continua sendo gerado
-em `release/AUTOWORK-Portable-0.3.0.exe`.
+em `release/AUTOWORK-Portable-0.3.1.exe`.
 
 Os scripts de distribuição falham se o sidecar estiver ausente e conferem sua
 inclusão em `resources/autowork/autowork-api.exe`. A versão instalada não usa o

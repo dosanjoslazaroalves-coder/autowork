@@ -1,6 +1,10 @@
 import json
+import logging
 import re
-from typing import Any
+import unicodedata
+from datetime import datetime
+from zoneinfo import ZoneInfo
+from typing import Any, Mapping
 
 from conversa.ollama import OLLAMA_MODEL, OLLAMA_URL
 
@@ -8,6 +12,141 @@ try:
     import requests
 except ImportError: 
     requests = None
+
+
+logger = logging.getLogger(__name__)
+
+
+_VERBOS_OPERACIONAIS = re.compile(
+    r"\b(?:abr[ae]ir?|iniciar?|executar?|rodar?|fechar?|encerrar?|minimizar?|"
+    r"mostrar?|abrir|pesquisar|buscar|aumentar|diminuir)\b",
+    re.IGNORECASE,
+)
+_PALAVRAS_NUMERO = {
+    "um": 1, "uma": 1, "dois": 2, "duas": 2, "tres": 3, "três": 3,
+    "quatro": 4, "cinco": 5, "seis": 6, "sete": 7, "oito": 8,
+    "nove": 9, "dez": 10, "onze": 11, "doze": 12, "treze": 13,
+    "quatorze": 14, "quinze": 15, "vinte": 20, "trinta": 30,
+}
+
+
+def _sem_acentos(texto: str) -> str:
+    return "".join(
+        c for c in unicodedata.normalize("NFD", str(texto or ""))
+        if unicodedata.category(c) != "Mn"
+    ).casefold()
+
+
+def _extrair_alvo_catalogado(texto: str) -> tuple[str, str] | None:
+    """Localiza o alvo por entidade, sem depender da posição do verbo."""
+    from sistema_toke.catalogo.catalogo_app import MAPA_APPS, resolver_nome_app
+    from sistema_toke.catalogo.catalogo_site import CATALOGO_SITES
+
+    frase = _sem_acentos(texto)
+    candidatos: list[tuple[int, str, str, str]] = []
+    for alias in MAPA_APPS:
+        alias_norm = _sem_acentos(alias)
+        if re.search(rf"(?<!\w){re.escape(alias_norm)}(?!\w)", frase):
+            nome = resolver_nome_app(alias)
+            if nome:
+                candidatos.append((len(alias_norm), "abrir_app", alias, nome))
+    for chave, info in CATALOGO_SITES.items():
+        aliases = [info.nome, *info.sinonimos, chave]
+        for alias in aliases:
+            alias_norm = _sem_acentos(alias)
+            if re.search(rf"(?<!\w){re.escape(alias_norm)}(?!\w)", frase):
+                candidatos.append((len(alias_norm), "abrir_site", alias, info.url))
+    if not candidatos:
+        return None
+    _, acao, alvo, resolvido = max(candidatos, key=lambda item: item[0])
+    return acao, resolvido
+
+
+def _extrair_agendamento(texto: str) -> tuple[str, dict[str, Any] | None]:
+    """Retorna o comando sem a expressão temporal e o agendamento efêmero."""
+    if not texto:
+        return texto, None
+    original = texto.strip()
+    sem_acentos = _sem_acentos(original)
+    unidades = r"segundos?|minutos?|horas?"
+    padrao_relativo = re.search(
+        rf"\bdaqui\s+a\s+(?P<quant>\d+|[a-zà-ú]+)\s+(?P<unidade>{unidades})\b",
+        sem_acentos,
+        re.IGNORECASE,
+    )
+    if padrao_relativo:
+        valor_raw = padrao_relativo.group("quant")
+        valor = int(valor_raw) if valor_raw.isdigit() else _PALAVRAS_NUMERO.get(valor_raw, 0)
+        unidade = padrao_relativo.group("unidade").lower()
+        multiplicador = 3600 if unidade.startswith("hora") else 60 if unidade.startswith("minuto") else 1
+        if valor > 0:
+            base = original[: padrao_relativo.start()].rstrip(" ,.;")
+            return base, {
+                "tipo": "relativo",
+                "atraso_segundos": valor * multiplicador,
+                "expressao": padrao_relativo.group(0),
+            }
+
+    padrao_absoluto = re.search(
+        r"\b(?:às|as)\s+(?P<hora>\d{1,2})(?::(?P<minuto>\d{2}))?\s*(?:horas?)?\b",
+        original,
+        re.IGNORECASE,
+    )
+    if padrao_absoluto:
+        hora = int(padrao_absoluto.group("hora"))
+        minuto = int(padrao_absoluto.group("minuto") or 0)
+        if 0 <= hora <= 23 and 0 <= minuto <= 59:
+            agora = datetime.now(ZoneInfo("America/Sao_Paulo"))
+            alvo = agora.replace(hour=hora, minute=minuto, second=0, microsecond=0)
+            if alvo <= agora:
+                from datetime import timedelta
+                alvo += timedelta(days=1)
+            return original[: padrao_absoluto.start()].rstrip(" ,.;"), {
+                "tipo": "absoluto",
+                "atraso_segundos": max(0.0, (alvo - agora).total_seconds()),
+                "expressao": padrao_absoluto.group(0),
+                "hora": f"{hora:02d}:{minuto:02d}",
+            }
+    return original, None
+
+
+def _comando_natural(texto: str) -> dict[str, Any] | None:
+    """Resolve localmente pedidos naturais cujo alvo já está no catálogo."""
+    if not _VERBOS_OPERACIONAIS.search(texto):
+        return None
+    alvo = _extrair_alvo_catalogado(texto)
+    if not alvo:
+        return None
+    acao, valor = alvo
+    texto_sem_acentos = _sem_acentos(texto)
+    if re.search(r"\b(?:fechar|fecha|feche|encerrar|encerra|encerre)\b", texto_sem_acentos):
+        return {
+            "tipo": "comando",
+            "acao": "fechar_janela",
+            "intencao": "FECHAR_JANELA",
+            "parametros": {},
+            "entidades": {"alvo": valor},
+            "confianca": 0.9,
+            "precisa_confirmacao": False,
+            "fala": "",
+            "falar": False,
+        }
+    if not re.search(r"\b(?:abrir|abra|abre|iniciar|inicie|inicia|executar|execute|rodar|rode)\b", texto_sem_acentos):
+        return None
+    # Para sites, o catálogo já fornece a URL segura; para apps, o nome é
+    # canônico. Nenhuma string da frase vira código executável.
+    parametros = {"nome": valor} if acao == "abrir_app" else {"url": valor}
+    return {
+        "tipo": "comando",
+        "acao": acao,
+        "intencao": acao.upper(),
+        "parametros": parametros,
+        "entidades": {"aplicativo" if acao == "abrir_app" else "site": valor},
+        "confianca": 0.97,
+        "precisa_confirmacao": False,
+        "fala": "",
+        "falar": False,
+    }
 
 
 class InterpretadorComplexo:
@@ -141,7 +280,7 @@ class InterpretadorComplexo:
             print(f"Erro inesperado: {erro}")
 
 
-def interpretar(texto: Any) -> dict[str, Any] | None:
+def interpretar(texto: Any, contexto: Mapping[str, Any] | None = None) -> dict[str, Any] | None:
     from filtro import filtrar, ResultadoFiltro
 
     if isinstance(texto, ResultadoFiltro):
@@ -153,6 +292,12 @@ def interpretar(texto: Any) -> dict[str, Any] | None:
 
     texto_original = info_filtro.texto_original
     texto_filtrado = info_filtro.texto_filtrado
+    if contexto:
+        from core.contexto_execucao import ContextoExecucao
+
+        contexto_sessao = ContextoExecucao()
+        contexto_sessao.atualizar(**dict(contexto))
+        texto_filtrado = contexto_sessao.resolver_referencia(texto_filtrado)
 
     if not texto_filtrado or not texto_filtrado.strip():
         return _intencao("desconhecido", {"texto_original": texto_original}, tipo="desconhecido", confianca=0.0)
@@ -172,7 +317,29 @@ def interpretar(texto: Any) -> dict[str, Any] | None:
             "texto_filtrado": texto_filtrado,
         }
 
-    frase = re.sub(r"[?!.,;:]+", "", " ".join(texto_filtrado.lower().split()))
+    texto_comando, agendamento = _extrair_agendamento(texto_filtrado)
+    frase = re.sub(r"[?!.,;:]+", "", " ".join(texto_comando.lower().split()))
+
+    # Pedido natural com entidade conhecida: mantém o caminho rápido e não
+    # exige que o verbo seja a primeira palavra da frase.
+    pergunta_explicativa = bool(
+        re.search(
+            r"^(?:voc[eê]|vc)\s+(?:sabe|consegue|pode)\b|"
+            r"^como\s+(?:eu\s+)?(?:abro|fa[cç]o)\b|"
+            r"\b(?:explicar|ensinar|significa|defini[cç][aã]o)\b",
+            texto_comando,
+            re.IGNORECASE,
+        )
+    )
+    natural = None if pergunta_explicativa else _comando_natural(texto_comando)
+    if natural is not None:
+        if agendamento:
+            natural["agendamento"] = agendamento
+            natural["tipo"] = "comando"
+        natural["texto_original"] = texto_original
+        natural["texto_filtrado"] = texto_filtrado
+        natural["texto_comando"] = texto_comando
+        return natural
 
     if not info_filtro.eh_pergunta:
         try:
@@ -203,7 +370,10 @@ def interpretar(texto: Any) -> dict[str, Any] | None:
                 plano = interpretar_comando_complexo(texto_complexo)
                 plano["texto_original"] = texto_original
                 plano["texto_filtrado"] = texto_filtrado
+                plano["texto_comando"] = texto_comando
                 plano["intencao"] = "COMANDO_COMPLEXO"
+                if agendamento:
+                    plano["agendamento"] = agendamento
                 return plano
         except Exception as exc:
             import logging
@@ -234,7 +404,7 @@ def interpretar(texto: Any) -> dict[str, Any] | None:
     # 1. Tentativa deterministica. Perguntas que contem um pedido operacional
     # conhecido ("pode abrir o Codex?") tambem passam pelo parser; perguntas
     # sobre como executar algo continuam sendo conversa.
-    comando = parse(texto_filtrado)
+    comando = parse(texto_comando)
     resolvido_previo = resolver(comando) if comando else None
     pedido_operacional = _eh_pedido_operacional(
         frase,
@@ -242,7 +412,10 @@ def interpretar(texto: Any) -> dict[str, Any] | None:
         comando,
         resolvido_previo,
     )
-    if comando and not eh_clima and (comeca_com_verbo or comando.get("pronto") or pedido_operacional):
+    pedido_natural = bool(_VERBOS_OPERACIONAIS.search(frase)) and not bool(
+        re.search(r"\b(?:sabe|explicar|ensinar|significa|definição|definicao)\b", frase)
+    )
+    if comando and not eh_clima and (comeca_com_verbo or comando.get("pronto") or pedido_operacional or pedido_natural):
             # Hora/data são tratadas pelo módulo de tempo, não pelo executor.
             if comando.get("acao") == "informar_hora":
                 return _intencao("consultar_horario", {"local": _extrair_local(frase), "texto_original": texto_original}, tipo="hora")
@@ -252,7 +425,7 @@ def interpretar(texto: Any) -> dict[str, Any] | None:
             resolvido = resolvido_previo
             if resolvido:
                 params = dict(resolvido.get("parametros", {}))
-                return {
+                resultado = {
                     "tipo": "comando",
                     "acao": resolvido["acao"],
                     "intencao": resolvido["acao"].upper(),
@@ -262,7 +435,11 @@ def interpretar(texto: Any) -> dict[str, Any] | None:
                     "falar": False,
                     "texto_original": texto_original,
                     "texto_filtrado": texto_filtrado,
+                    "texto_comando": texto_comando,
                 }
+                if agendamento:
+                    resultado["agendamento"] = agendamento
+                return resultado
 
             # Parser determinístico não conseguiu resolver o alvo diretamente.
             # Consulta a IA Local antes de declarar o comando como não resolvido.
@@ -273,13 +450,15 @@ def interpretar(texto: Any) -> dict[str, Any] | None:
                     intencao_ia["texto_original"] = texto_original
                     intencao_ia["texto_filtrado"] = texto_filtrado
                     intencao_ia["intencao"] = intencao_ia.get("acao", "").upper()
+                    if agendamento:
+                        intencao_ia["agendamento"] = agendamento
                     return intencao_ia
             except Exception as exc:
                 import logging
                 logging.getLogger(__name__).debug("Falha no fallback do resolvedor IA: %s", exc)
 
             # Parser reconheceu a ação, mas o alvo não existe (app/site desconhecido).
-            return {
+            resultado = {
                 "tipo": "comando",
                 "acao": comando.get("acao", ""),
                 "intencao": comando.get("acao", "").upper(),
@@ -291,6 +470,10 @@ def interpretar(texto: Any) -> dict[str, Any] | None:
                 "texto_original": texto_original,
                 "texto_filtrado": texto_filtrado,
             }
+            if agendamento:
+                resultado["agendamento"] = agendamento
+            resultado["texto_comando"] = texto_comando
+            return resultado
 
     # 2. Clima
     if re.search(r"\b(clima|tempo|temperatura|chover|previsão|previsao)\b", frase):

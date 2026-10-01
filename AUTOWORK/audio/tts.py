@@ -20,7 +20,7 @@ def falar(
     texto: Optional[str],
     voice: Optional[str] = None,
     speed: Optional[float] = None,
-) -> None:
+) -> Optional[bool]:
     """Sintetiza e reproduz texto via Kokoro TTS.
 
     Se o texto for vazio ou None, a chamada é ignorada silenciosamente.
@@ -29,7 +29,7 @@ def falar(
     """
     if not texto or not texto.strip():
         logger.debug("TTS: texto vazio, ignorando.")
-        return
+        return None
 
     global _falar_kokoro
     if _falar_kokoro is None:
@@ -37,9 +37,13 @@ def falar(
         _falar_kokoro = _falar_motor
 
     try:
+        inicio = time.perf_counter()
         _falar_kokoro(texto, voice=voice, speed=speed)
+        logger.info("[PERF] TTS concluído em %.1f ms", (time.perf_counter() - inicio) * 1000)
+        return True
     except Exception as exc:
         logger.error("Falha no TTS: %s", exc)
+        return False
 
 
 def _envelope(audio, taxa_amostragem: int) -> List[float]:
@@ -66,7 +70,7 @@ def falar_com_niveis(
     on_nivel: OnNivelCallback,
     voice: Optional[str] = None,
     speed: Optional[float] = None,
-) -> None:
+) -> Optional[bool]:
     """Reproduz texto via TTS emitindo os níveis reais do áudio sintetizado.
 
     O envelope é calculado sobre a própria forma de onda gerada pelo Kokoro
@@ -75,7 +79,7 @@ def falar_com_niveis(
     """
     if not texto or not texto.strip():
         logger.debug("TTS: texto vazio, ignorando.")
-        return
+        return None
 
     try:
         from modules.voz_teste import gerar_audio
@@ -85,15 +89,13 @@ def falar_com_niveis(
         envelope = _envelope(audio, config_tts.SAMPLE_RATE)
     except Exception as exc:
         logger.error("Falha ao gerar TTS com níveis: %s", exc)
-        falar(texto, voice=voice, speed=speed)
-        return
+        return falar(texto, voice=voice, speed=speed)
 
     try:
         import sounddevice as sd
     except ImportError:
         logger.error("sounddevice indisponível; reproduzindo sem níveis.")
-        falar(texto)
-        return
+        return falar(texto, voice=voice, speed=speed)
 
     def _emitir() -> None:
         for nivel in envelope:
@@ -114,6 +116,7 @@ def falar_com_niveis(
         sd.wait()
     except Exception as exc:
         logger.error("Falha na reprodução do TTS: %s", exc)
-        return
+        return False
     finally:
         emissor.join(timeout=1.0)
+    return True

@@ -40,6 +40,7 @@ def test_reconhecimento_erro_requisicao() -> None:
     servico = ServicoReconhecimento(mock_recognizer)
 
     assert servico.transcrever(MagicMock(spec=sr.AudioData)) is None
+    assert servico.ultimo_erro == "sem internet"
 
 def test_transcrever_sem_audio() -> None:
     """Captura com timeout (None) é ignorada sem chamar o reconhecedor."""

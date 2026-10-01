@@ -7,7 +7,7 @@
       content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none';"
     />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AUTOWORK 0.3</title>
+    <title>AUTOWORK 0.3.1</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
@@ -105,8 +105,8 @@
                 <div class="orb-footer">
                   <div><span class="card-kicker">ESTADO ATUAL</span><strong id="status-text">Pronto</strong></div>
                   <div class="orb-footer-actions">
-                    <button class="button button-secondary" id="stop-button" type="button" title="Interromper a demonstração visual">Parar</button>
-                    <button class="button button-primary" id="mic-button" type="button" aria-pressed="false" title="Ativar ou desativar o microfone visual"><span class="button-icon" aria-hidden="true">◉</span><span id="mic-label">Microfone visual</span></button>
+                    <button class="button button-secondary" id="stop-button" type="button" title="Parar a escuta real ou a demonstração visual">Parar</button>
+                    <button class="button button-primary" id="mic-button" type="button" aria-pressed="false" title="Ativar ou desativar o microfone real"><span class="button-icon" aria-hidden="true">◉</span><span id="mic-label">Ativar microfone</span></button>
                   </div>
                 </div>
               </section>
@@ -115,6 +115,7 @@
                 <section class="card activity-card" aria-labelledby="activity-heading">
                   <div class="card-heading"><div><span class="card-kicker">MONITORAMENTO</span><h3 id="activity-heading">Última atividade</h3></div><span class="activity-indicator" aria-hidden="true"></span></div>
                   <div class="activity-main"><span class="activity-icon" aria-hidden="true">✧</span><div><strong id="activity-text">Aguardando comando</strong><span id="activity-time">Agora</span></div></div>
+                  <div class="voice-transcript"><span class="card-kicker">VOCÊ DISSE</span><strong id="voice-transcript">—</strong></div>
                   <div class="activity-line"><span></span><span></span><span></span><span></span><span></span></div>
                 </section>
 

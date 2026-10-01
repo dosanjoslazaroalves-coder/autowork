@@ -28,9 +28,15 @@ declare global {
         state?: string;
         core?: string;
         ready?: boolean;
-        error?: string;
-      }>;
-      sendAutoworkCommand: (texto: string) => Promise<Record<string, unknown>>;
+         error?: string;
+         voice_running?: boolean;
+         last_transcript?: string;
+         last_response?: Record<string, unknown>;
+         audio_level?: number;
+       }>;
+       sendAutoworkCommand: (texto: string) => Promise<Record<string, unknown>>;
+       startAutoworkVoice: () => Promise<Record<string, unknown>>;
+       stopAutoworkVoice: () => Promise<Record<string, unknown>>;
       requestAutowork: (action: string, payload?: unknown) => Promise<unknown>;
       stopAutowork: () => Promise<void>;
     };

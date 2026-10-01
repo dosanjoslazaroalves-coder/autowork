@@ -16,6 +16,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import time
 from typing import Any, Dict, List, Optional
 
 from conversa.ollama import OLLAMA_AUX_TIMEOUT, OLLAMA_MODEL, OLLAMA_NUM_PREDICT, OLLAMA_URL
@@ -64,7 +65,7 @@ TAREFA: Analise a frase do usuário e retorne SOMENTE um JSON com a intenção c
 REGRAS ABSOLUTAS:
 1. Retorne APENAS JSON válido. Nenhum texto antes ou depois.
 2. Use SOMENTE as intenções listadas abaixo. NUNCA invente novas.
-3. Se a frase for uma pergunta, conversa, pedido de explicação ou não for um comando direto, retorne {{"intencao": "DESCONHECIDO"}}.
+3. Frases de cortesia e perguntas operacionais ("poderia abrir...", "você consegue abrir...") continuam sendo comandos; só rejeite perguntas de explicação/conversa.
 4. Frases como "minimiza tudo", "esconde as janelas", "quero ver a área de trabalho", "mostra o desktop" significam mostrar_area_de_trabalho.
 5. Frases como "minimiza essa janela", "diminui a janela" significam restaurar_ou_minimizar_janela.
 6. Frases como "troca de janela", "muda a janela", "vai pra outra janela" significam alternar_janelas.
@@ -86,10 +87,10 @@ Para atalhos:
 {{"intencao": "nome_exato_da_intencao"}}
 
 Para aplicativo:
-{{"intencao": "abrir_app", "alvo": "alias do aplicativo"}}
+{{"intencao": "abrir_app", "alvo": "alias do aplicativo", "confianca": 0.0}}
 
 Para site:
-{{"intencao": "abrir_site", "alvo": "nome do site"}}
+{{"intencao": "abrir_site", "alvo": "nome do site", "confianca": 0.0}}
 
 Se não for comando:
 {{"intencao": "DESCONHECIDO"}}
@@ -177,6 +178,7 @@ def _chamar_ollama(
         "options": {"num_predict": OLLAMA_NUM_PREDICT},
     }
 
+    inicio = time.perf_counter()
     try:
         resposta = requests.post(url, json=dados, timeout=timeout)
         if resposta.status_code == 404 and "not found" in resposta.text.lower():
@@ -188,7 +190,13 @@ def _chamar_ollama(
         if not isinstance(corpo, dict) or not isinstance(corpo.get("response"), str):
             logger.error("[OLLAMA][ERRO] Resposta inválida no resolvedor IA.")
             return None
-        return corpo["response"]
+        retorno = corpo["response"]
+        logger.info(
+            "[PERF] resolvedor_ia Ollama modelo=%s em %.1f ms",
+            modelo,
+            (time.perf_counter() - inicio) * 1000,
+        )
+        return retorno
     except requests.exceptions.ConnectionError:
         logger.error("[OLLAMA][ERRO] Ollama indisponível no resolvedor IA.")
         return None
@@ -233,14 +241,35 @@ def _extrair_json(texto: str) -> Optional[Dict[str, Any]]:
         pass
 
     # Tentativa 2: extrair primeiro {...} da string
-    match = re.search(r"\{[^{}]*\}", texto)
-    if match:
-        try:
-            resultado = json.loads(match.group())
-            if isinstance(resultado, dict):
-                return resultado
-        except json.JSONDecodeError:
-            pass
+    # Procura um objeto balanceado para aceitar campos aninhados sem usar
+    # eval/exec e sem truncar a resposta do modelo no primeiro bloco.
+    inicio = texto.find("{")
+    if inicio >= 0:
+        nivel = 0
+        em_string = False
+        escape = False
+        for indice in range(inicio, len(texto)):
+            caractere = texto[indice]
+            if em_string:
+                if escape:
+                    escape = False
+                elif caractere == "\\":
+                    escape = True
+                elif caractere == '"':
+                    em_string = False
+                continue
+            if caractere == '"':
+                em_string = True
+            elif caractere == "{":
+                nivel += 1
+            elif caractere == "}":
+                nivel -= 1
+                if nivel == 0:
+                    try:
+                        resultado = json.loads(texto[inicio : indice + 1])
+                        return resultado if isinstance(resultado, dict) else None
+                    except json.JSONDecodeError:
+                        break
 
     return None
 
@@ -256,7 +285,7 @@ def _validar_intencao(dados: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     from sistema_toke.catalogo.catalogo_app import MAPA_APPS, resolver_nome_app
     from sistema_toke.catalogo.catalogo_site import CATALOGO_SITES
 
-    intencao_raw = dados.get("intencao", "")
+    intencao_raw = dados.get("intencao") or dados.get("acao") or ""
     if not isinstance(intencao_raw, str):
         return None
 
@@ -284,8 +313,10 @@ def _validar_intencao(dados: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         }
 
     # ── 2. Abrir aplicativo ───────────────────────────────────────
-    if intencao == "abrir_app":
-        alvo = (dados.get("alvo") or "").strip().lower()
+    if intencao in {"abrir_app", "abrir_aplicativo"}:
+        entidades = dados.get("entidades") if isinstance(dados.get("entidades"), dict) else {}
+        alvo = (dados.get("alvo") or dados.get("aplicativo") or entidades.get("aplicativo") or "")
+        alvo = str(alvo).strip().lower()
         if not alvo:
             logger.debug("Resolvedor IA: abrir_app sem alvo.")
             return None
@@ -299,7 +330,9 @@ def _validar_intencao(dados: Dict[str, Any]) -> Optional[Dict[str, Any]]:
                 "tipo": "comando",
                 "acao": "abrir_app",
                 "parametros": {"nome": nome_real},
-                "confianca": 0.85,
+                "entidades": {"aplicativo": nome_real},
+                "confianca": _confianca_modelo(dados),
+                "precisa_confirmacao": _confianca_modelo(dados) < 0.85,
                 "fala": "",
                 "falar": False,
             }
@@ -310,7 +343,9 @@ def _validar_intencao(dados: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 
     # ── 3. Abrir site ─────────────────────────────────────────────
     if intencao == "abrir_site":
-        alvo = (dados.get("alvo") or "").strip().lower()
+        entidades = dados.get("entidades") if isinstance(dados.get("entidades"), dict) else {}
+        alvo = (dados.get("alvo") or dados.get("site") or entidades.get("site") or "")
+        alvo = str(alvo).strip().lower()
         if not alvo:
             logger.debug("Resolvedor IA: abrir_site sem alvo.")
             return None
@@ -329,7 +364,9 @@ def _validar_intencao(dados: Dict[str, Any]) -> Optional[Dict[str, Any]]:
                     "tipo": "comando",
                     "acao": "abrir_site",
                     "parametros": {"url": site_info.url},
-                    "confianca": 0.85,
+                    "entidades": {"site": site_info.nome},
+                    "confianca": _confianca_modelo(dados),
+                    "precisa_confirmacao": _confianca_modelo(dados) < 0.85,
                     "fala": "",
                     "falar": False,
                 }
@@ -345,6 +382,14 @@ def _validar_intencao(dados: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         intencao,
     )
     return None
+
+
+def _confianca_modelo(dados: Dict[str, Any]) -> float:
+    try:
+        valor = float(dados.get("confianca", 0.85))
+    except (TypeError, ValueError):
+        valor = 0.0
+    return max(0.0, min(1.0, valor))
 
 
 # ══════════════════════════════════════════════════════════════════

@@ -15,6 +15,10 @@ type AutoworkStatus = {
   core?: string;
   ready?: boolean;
   error?: string;
+  voice_running?: boolean;
+  last_transcript?: string;
+  last_response?: Record<string, unknown>;
+  audio_level?: number;
 };
 
 const DEFAULT_API_HOST = "127.0.0.1";
@@ -110,6 +114,18 @@ class AutoworkApiProcess {
     }
   }
 
+  async startVoice(): Promise<AutoworkStatus> {
+    await this.ensureStarted();
+    log("info", "[Main] iniciando captura de voz real");
+    return await this.postJson("/api/voice/start", {}) as AutoworkStatus;
+  }
+
+  async stopVoice(): Promise<AutoworkStatus> {
+    await this.ensureStarted();
+    log("info", "[Main] parando captura de voz real");
+    return await this.postJson("/api/voice/stop", {}) as AutoworkStatus;
+  }
+
   async request(action: string, payload?: unknown): Promise<unknown> {
     if (action === "health") return this.health();
     if (action === "ping") return { message: "pong", pid: process.pid };
@@ -118,6 +134,9 @@ class AutoworkApiProcess {
       if (typeof payload !== "string") throw new Error("Command payload must be text");
       return this.command(payload);
     }
+    if (action === "voice.start") return this.startVoice();
+    if (action === "voice.stop") return this.stopVoice();
+    if (action === "voice.status") return this.status();
     throw new Error(`Unsupported AUTOWORK API action: ${action}`);
   }
 
@@ -198,7 +217,8 @@ class AutoworkApiProcess {
   private async spawnAndWait(): Promise<void> {
     const packagedExecutable = path.join(process.resourcesPath, "autowork", "autowork-api.exe");
     const executableOverride = !app.isPackaged ? process.env.AUTOWORK_API_EXECUTABLE : undefined;
-    const developmentCorePath = path.resolve(app.getAppPath(), "..", "Chat", "AUTOWORK");
+    // Em desenvolvimento, APP_AUTOWORK está dentro do checkout AUTOWORK.
+    const developmentCorePath = path.resolve(app.getAppPath(), "..");
     const corePath = !app.isPackaged ? (process.env.AUTOWORK_CORE_PATH || developmentCorePath) : "";
     const scriptPath = app.isPackaged
       ? path.join(process.resourcesPath, "autowork", "api.py")
@@ -452,7 +472,7 @@ app.on("second-instance", () => {
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
-    title: "AUTOWORK 0.3",
+    title: "AUTOWORK 0.3.1",
     width: 1100,
     height: 760,
     minWidth: 820,
@@ -511,6 +531,9 @@ app.whenReady().then(() => {
     log("info", "[IPC] comando recebido: " + texto);
     return autowork.command(texto);
   });
+
+  ipcMain.handle("autowork:voice-start", () => autowork.startVoice());
+  ipcMain.handle("autowork:voice-stop", () => autowork.stopVoice());
 
   ipcMain.handle("autowork:stop", () => autowork.stop());
   createWindow();

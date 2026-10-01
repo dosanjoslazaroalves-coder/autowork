@@ -4,6 +4,7 @@ os.environ.setdefault("AUTOWORK_TTS_ENABLED", "0")
 
 from fastapi.testclient import TestClient
 
+import api as api_module
 from api import app
 
 
@@ -58,3 +59,16 @@ def test_status_ready_after_real_command() -> None:
     assert status["ready"] is True
     assert status["state"] == "IDLE"
     assert status["last_transcript"] == "que dia é hoje"
+
+
+def test_voice_endpoints_delegate_to_real_service(monkeypatch) -> None:
+    monkeypatch.setattr(api_module.service, "start_voice", lambda: {"voice_running": True, "state": "OUVINDO"})
+    monkeypatch.setattr(api_module.service, "stop_voice", lambda: {"voice_running": False, "state": "IDLE"})
+
+    started = client.post("/api/voice/start")
+    stopped = client.post("/api/voice/stop")
+
+    assert started.status_code == 200
+    assert started.json()["voice_running"] is True
+    assert stopped.status_code == 200
+    assert stopped.json()["voice_running"] is False

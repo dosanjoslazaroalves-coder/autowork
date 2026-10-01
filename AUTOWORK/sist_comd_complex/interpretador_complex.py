@@ -241,7 +241,19 @@ def _separar_partes(texto: str) -> List[str]:
             if len(alvos) >= 2 and all(alvo.strip() for alvo in alvos):
                 return [f"{lista.group('verbo')} {alvo.strip()}" for alvo in alvos]
 
-    return [p.strip(" ,.;") for p in limpo.split("|") if p.strip(" ,.;")]
+    partes = [p.strip(" ,.;") for p in limpo.split("|") if p.strip(" ,.;")]
+    # Linguagem natural costuma omitir o verbo nas etapas seguintes:
+    # "abra Chrome, depois Spotify e depois VS Code". Reaproveite o verbo
+    # somente para a lista de abertura; não transforme texto livre em ação.
+    if len(partes) >= 2:
+        primeiro_tokens = partes[0].split(maxsplit=1)
+        if primeiro_tokens and primeiro_tokens[0] in VERBOS_ABRIR:
+            verbo = primeiro_tokens[0]
+            partes = [partes[0]] + [
+                parte if PADRAO_VERBO_COMANDO.search(parte) else f"{verbo} {parte}"
+                for parte in partes[1:]
+            ]
+    return partes
 
 
 def _interpretar_parte(parte: str) -> Dict[str, Any]:
@@ -306,6 +318,30 @@ def _interpretar_parte(parte: str) -> Dict[str, Any]:
 def _classificar_abertura(alvo: str) -> Dict[str, Any]:
     alvo_norm = _normalizar(alvo)
     alvo_site = _remover_prefixo_site(alvo_norm)
+
+    # O catálogo central é a autoridade para aplicativos; este módulo não
+    # mantém uma segunda lista de executáveis válidos.
+    from sistema_toke.catalogo.catalogo_app import resolver_nome_app
+    from sistema_toke.catalogo.catalogo_site import CATALOGO_SITES
+
+    app_catalogado = resolver_nome_app(alvo_norm) or resolver_nome_app(alvo_site)
+    if app_catalogado:
+        return {
+            "acao": "abrir_aplicativo",
+            "parametros": {"aplicativo": app_catalogado, "nome": app_catalogado},
+            "confianca": 0.97,
+            "idempotente": True,
+        }
+
+    for chave, site_info in CATALOGO_SITES.items():
+        nomes = {chave.lower(), site_info.nome.lower(), *(s.lower() for s in site_info.sinonimos)}
+        if alvo_site in nomes or alvo_norm in nomes:
+            return {
+                "acao": "abrir_site",
+                "parametros": {"site": chave, "url": site_info.url},
+                "confianca": 0.97,
+                "idempotente": True,
+            }
 
     if alvo_norm in APLICATIVOS:
         app = APLICATIVOS[alvo_norm]

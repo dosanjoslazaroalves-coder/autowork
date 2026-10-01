@@ -16,11 +16,13 @@ class ServicoReconhecimento:
     def __init__(self, recognizer: sr.Recognizer, idioma: str = "pt-BR") -> None:
         self.recognizer = recognizer
         self.idioma = idioma
+        self.ultimo_erro: Optional[str] = None
 
     def transcrever(self, audio: Optional[sr.AudioData]) -> Optional[str]:
         """Retorna texto normalizado, ou None se não entendeu / sem áudio."""
         if audio is None:
             return None
+        self.ultimo_erro = None
         t0 = time.perf_counter()
         try:
             texto = self.recognizer.recognize_google(audio, language=self.idioma)
@@ -28,7 +30,12 @@ class ServicoReconhecimento:
             logger.debug("Áudio não compreendido pelo reconhecedor.")
             return None
         except sr.RequestError as exc:
+            self.ultimo_erro = str(exc)
             logger.error("[VOICE] erro no serviço de reconhecimento: %s", exc)
+            return None
+        except Exception as exc:
+            self.ultimo_erro = str(exc)
+            logger.exception("[VOICE] erro inesperado no reconhecimento")
             return None
         resultado = texto.lower().strip()
         logger.info("[VOICE] reconhecimento em %.2fs", time.perf_counter() - t0)

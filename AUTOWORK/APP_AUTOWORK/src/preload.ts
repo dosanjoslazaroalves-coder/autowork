@@ -10,6 +10,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   pingAutowork: () => ipcRenderer.invoke("autowork:ping"),
   getAutoworkHealth: () => ipcRenderer.invoke("autowork:health"),
   getAutoworkStatus: () => ipcRenderer.invoke("autowork:status"),
+  startAutoworkVoice: () => ipcRenderer.invoke("autowork:voice-start"),
+  stopAutoworkVoice: () => ipcRenderer.invoke("autowork:voice-stop"),
   sendAutoworkCommand: (texto: string) => {
     console.info("[Preload] Encaminhando comando ao IPC:", texto);
     return ipcRenderer.invoke("autowork:command", texto);

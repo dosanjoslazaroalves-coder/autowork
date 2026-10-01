@@ -103,7 +103,7 @@ class ServicoCaptura:
         non_speaking_duration: float = 0.3,
         operation_timeout: Optional[float] = 8.0,
         listen_timeout: Optional[float] = None,
-        phrase_time_limit: Optional[float] = 90.0,
+        phrase_time_limit: Optional[float] = 10.0,
     ) -> None:
         if non_speaking_duration > pause_threshold:
             raise ValueError(
